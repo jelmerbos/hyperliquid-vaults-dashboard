@@ -39,3 +39,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+
+# Claude Brain (auto-managed by deploy.py)
+.claude/brain/
+.claude/skills/
+.brain-deploy-manifest.json
