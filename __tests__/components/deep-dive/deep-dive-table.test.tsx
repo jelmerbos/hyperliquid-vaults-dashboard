@@ -18,6 +18,7 @@ function makeMetrics(overrides: Partial<DeepDiveMetrics> = {}): DeepDiveMetrics 
   return {
     annReturn: 0.45,
     cumReturn: 0.32,
+    pnl: 32000,
     annVol: 0.25,
     maxDD: -0.15,
     maxDDDuration: 12,
@@ -73,6 +74,7 @@ function makeRow(
       },
     } as VaultListItem,
     metrics,
+    percentiles: {},
     accountValueHistory: [[Date.now(), 10000]] as TimeSeries,
   };
 }

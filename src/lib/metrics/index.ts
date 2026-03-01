@@ -71,4 +71,11 @@ export function computeVaultMetrics(
 
 export type { TimeSeries } from "./returns";
 export type { ReturnDistributionStats, MonthlyDistributionStats } from "./returns";
-export { dailyReturns, monthlyReturns } from "./returns";
+export {
+  dailyReturns,
+  monthlyReturns,
+  pnlBasedDailyReturns,
+  pnlBasedCumulativeReturn,
+  pnlBasedAnnualizedReturn,
+  pnlBasedMonthlyReturns,
+} from "./returns";

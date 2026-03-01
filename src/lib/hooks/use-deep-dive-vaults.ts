@@ -5,20 +5,24 @@ import { useQueries } from "@tanstack/react-query";
 import { useVaults } from "./use-vaults";
 import { useBenchmark } from "./use-benchmark";
 import type { VaultDetails, VaultListItem } from "@/lib/api/types";
-import type { DeepDiveMetrics } from "@/lib/metrics/deep-dive";
+import type { DeepDiveMetrics, DeepDivePeriod } from "@/lib/metrics/deep-dive";
 import type { TimeSeries } from "@/lib/metrics";
-import { dailyReturns } from "@/lib/metrics";
+import { pnlBasedDailyReturns } from "@/lib/metrics";
 import { beta } from "@/lib/metrics/benchmark";
 import {
   filterQualifyingVaults,
-  pickTopVaults,
   computeDeepDiveMetrics,
+  computePercentileRanks,
+  stripLeadingZeros,
+  sliceToPeriod,
 } from "@/lib/metrics/deep-dive";
+import type { PercentileRanks } from "@/lib/metrics/deep-dive";
 
 export interface DeepDiveRow {
   vault: VaultDetails;
   listItem: VaultListItem;
   metrics: DeepDiveMetrics | null;
+  percentiles: PercentileRanks;
   accountValueHistory: TimeSeries;
 }
 
@@ -32,13 +36,16 @@ async function getVaultDetails(address: string): Promise<VaultDetails> {
   return res.json();
 }
 
-export function useDeepDiveVaults(minTvl: number, minAgeDays: number) {
+export function useDeepDiveVaults(
+  minTvl: number,
+  minAgeDays: number,
+  period: DeepDivePeriod = "ITD",
+) {
   const { data: allVaults, isLoading: listLoading } = useVaults();
 
   const qualifying = useMemo(() => {
     if (!allVaults) return [];
-    const filtered = filterQualifyingVaults(allVaults, minTvl, minAgeDays);
-    return pickTopVaults(filtered, 10);
+    return filterQualifyingVaults(allVaults, minTvl, minAgeDays);
   }, [allVaults, minTvl, minAgeDays]);
 
   const detailQueries = useQueries({
@@ -75,7 +82,7 @@ export function useDeepDiveVaults(minTvl: number, minAgeDays: number) {
   const { data: hypeBenchmark } = useBenchmark("HYPE", timeRange?.start, timeRange?.end);
 
   const rows: DeepDiveRow[] = useMemo(() => {
-    return detailQueries
+    const rawRows = detailQueries
       .map((q, i) => {
         if (!q.data) return null;
         const vault = q.data;
@@ -84,11 +91,15 @@ export function useDeepDiveVaults(minTvl: number, minAgeDays: number) {
         if (!allTime) return null;
 
         const avHistory = parseTimeSeries(allTime[1].accountValueHistory);
-        const metrics = computeDeepDiveMetrics(avHistory);
+        const pnlHistory = parseTimeSeries(allTime[1].pnlHistory);
+        const metrics = computeDeepDiveMetrics(avHistory, pnlHistory, period);
 
         // Enrich with beta if benchmark data is available
+        // Use cleaned + sliced history for beta computation to match the period
         if (metrics) {
-          const vaultDaily = dailyReturns(avHistory);
+          const cleanedAv = sliceToPeriod(stripLeadingZeros(avHistory), period);
+          const cleanedPnl = sliceToPeriod(pnlHistory, period);
+          const vaultDaily = pnlBasedDailyReturns(cleanedAv, cleanedPnl);
           if (btcBenchmark) {
             const aligned = alignReturns(vaultDaily, btcBenchmark.dailyReturns);
             metrics.betaBtc = beta(aligned.vault, aligned.benchmark);
@@ -99,9 +110,17 @@ export function useDeepDiveVaults(minTvl: number, minAgeDays: number) {
           }
         }
 
-        return { vault, listItem, metrics, accountValueHistory: avHistory };
+        return { vault, listItem, metrics, percentiles: {}, accountValueHistory: avHistory };
       })
       .filter(Boolean) as DeepDiveRow[];
+
+    // Compute percentile ranks across all rows
+    const percentiles = computePercentileRanks(rawRows.map((r) => r.metrics));
+    for (let i = 0; i < rawRows.length; i++) {
+      rawRows[i].percentiles = percentiles[i] ?? {};
+    }
+
+    return rawRows;
   }, [detailQueries, qualifying, btcBenchmark, hypeBenchmark]);
 
   return {

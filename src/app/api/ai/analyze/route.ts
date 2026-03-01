@@ -76,7 +76,11 @@ export async function POST(request: NextRequest) {
         { status: 502 },
       );
     }
-    throw error;
+    console.error("Unhandled AI analyze error:", error);
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Internal error" },
+      { status: 500 },
+    );
   }
 }
 
@@ -126,8 +130,18 @@ Respond only with the JSON object, no other text.`,
     );
   }
 
-  const parsed: AnalyzeResponse = JSON.parse(textBlock.text);
+  const jsonText = extractJson(textBlock.text);
+  const parsed: AnalyzeResponse = JSON.parse(jsonText);
   return NextResponse.json(parsed);
+}
+
+/**
+ * Extract JSON from a response that may be wrapped in markdown code fences.
+ */
+function extractJson(text: string): string {
+  const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (fenced) return fenced[1].trim();
+  return text.trim();
 }
 
 async function handleMemo(
@@ -173,6 +187,7 @@ Respond only with the JSON object, no other text.`,
     );
   }
 
-  const parsed: DDMemo = JSON.parse(textBlock.text);
+  const jsonText = extractJson(textBlock.text);
+  const parsed: DDMemo = JSON.parse(jsonText);
   return NextResponse.json(parsed);
 }

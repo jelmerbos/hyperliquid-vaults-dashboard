@@ -7,6 +7,10 @@ import {
   monthlyReturns,
   returnDistributionStats,
   monthlyDistributionStats,
+  pnlBasedDailyReturns,
+  pnlBasedCumulativeReturn,
+  pnlBasedAnnualizedReturn,
+  pnlBasedMonthlyReturns,
 } from "@/lib/metrics/returns";
 import type { TimeSeries } from "@/lib/metrics/returns";
 
@@ -203,5 +207,176 @@ describe("monthlyDistributionStats", () => {
     expect(stats.positiveMonthPct).toBeCloseTo(2 / 4);
     expect(stats.bestMonth).toBeCloseTo(0.10);
     expect(stats.worstMonth).toBeCloseTo(-0.03);
+  });
+});
+
+describe("pnlBasedDailyReturns", () => {
+  /** @req DIVE-13 */
+  it("returns empty for insufficient data", () => {
+    expect(pnlBasedDailyReturns([], [])).toEqual([]);
+    expect(pnlBasedDailyReturns([[1000, 100]], [[1000, 0]])).toEqual([]);
+  });
+
+  /** @req DIVE-13 */
+  it("computes deltaPnL / prevAV for clean data", () => {
+    // Day 0: AV=1000, PnL=0; Day 1: AV=1010, PnL=10; Day 2: AV=1005, PnL=5
+    const av: TimeSeries = [
+      [0, 1000],
+      [MS_PER_DAY, 1010],
+      [MS_PER_DAY * 2, 1005],
+    ];
+    const pnl: TimeSeries = [
+      [0, 0],
+      [MS_PER_DAY, 10],
+      [MS_PER_DAY * 2, 5],
+    ];
+    const result = pnlBasedDailyReturns(av, pnl);
+    expect(result).toHaveLength(2);
+    expect(result[0]).toBeCloseTo(10 / 1000); // +1%
+    expect(result[1]).toBeCloseTo(-5 / 1010); // -0.5% (PnL went from 10 to 5)
+  });
+
+  /** @req DIVE-13 */
+  it("strips deposit effects: AV jump from deposit does not affect return", () => {
+    // Day 0: AV=1000, PnL=0
+    // Day 1: AV=2010, PnL=10 (deposit of 1000 + trading gain of 10)
+    // Day 2: AV=2020, PnL=20 (trading gain of 10 more)
+    //
+    // AV-based daily returns would show: (2010-1000)/1000 = 101% then (2020-2010)/2010 = 0.5%
+    // PnL-based should show: 10/1000 = 1% then 10/2010 = 0.5%
+    const av: TimeSeries = [
+      [0, 1000],
+      [MS_PER_DAY, 2010],     // 1000 deposit + 10 trading gain
+      [MS_PER_DAY * 2, 2020], // 10 more trading gain
+    ];
+    const pnl: TimeSeries = [
+      [0, 0],
+      [MS_PER_DAY, 10],  // Only trading P&L
+      [MS_PER_DAY * 2, 20],
+    ];
+    const result = pnlBasedDailyReturns(av, pnl);
+    expect(result).toHaveLength(2);
+    expect(result[0]).toBeCloseTo(0.01); // 10/1000 = 1%, not 101%
+    expect(result[1]).toBeCloseTo(10 / 2010);
+  });
+
+  /** @req DIVE-13 */
+  it("handles zero previous AV gracefully", () => {
+    const av: TimeSeries = [
+      [0, 0],
+      [MS_PER_DAY, 100],
+    ];
+    const pnl: TimeSeries = [
+      [0, 0],
+      [MS_PER_DAY, 5],
+    ];
+    const result = pnlBasedDailyReturns(av, pnl);
+    expect(result).toHaveLength(1);
+    expect(result[0]).toBe(0);
+  });
+});
+
+describe("pnlBasedCumulativeReturn", () => {
+  /** @req DIVE-13 */
+  it("returns 0 for insufficient data", () => {
+    expect(pnlBasedCumulativeReturn([], [])).toBe(0);
+  });
+
+  /** @req DIVE-13 */
+  it("computes totalPnL / startingAV", () => {
+    const av: TimeSeries = [
+      [0, 1000],
+      [MS_PER_DAY, 1100],
+    ];
+    const pnl: TimeSeries = [
+      [0, 0],
+      [MS_PER_DAY, 50],
+    ];
+    // Return = 50/1000 = 5%, even though AV shows 10%
+    expect(pnlBasedCumulativeReturn(av, pnl)).toBeCloseTo(0.05);
+  });
+
+  /** @req DIVE-13 */
+  it("strips deposit effect from cumulative return", () => {
+    // AV went from 1000 to 3050 but 2000 was deposits; only 50 was trading
+    const av: TimeSeries = [
+      [0, 1000],
+      [MS_PER_DAY * 30, 3050],
+    ];
+    const pnl: TimeSeries = [
+      [0, 0],
+      [MS_PER_DAY * 30, 50],
+    ];
+    // AV-based: (3050-1000)/1000 = 205%
+    // PnL-based: 50/1000 = 5%
+    expect(pnlBasedCumulativeReturn(av, pnl)).toBeCloseTo(0.05);
+  });
+});
+
+describe("pnlBasedAnnualizedReturn", () => {
+  /** @req DIVE-13 */
+  it("returns 0 for insufficient data", () => {
+    expect(pnlBasedAnnualizedReturn([], [])).toBe(0);
+  });
+
+  /** @req DIVE-13 */
+  it("annualizes PnL-based daily returns", () => {
+    // 365 days, 1% total PnL-based return
+    const av: TimeSeries = [
+      [0, 10000],
+      [MS_PER_DAY * 365, 10500],
+    ];
+    const pnl: TimeSeries = [
+      [0, 0],
+      [MS_PER_DAY * 365, 100],
+    ];
+    const annRet = pnlBasedAnnualizedReturn(av, pnl);
+    // With just 2 points, we get 1 daily return of 100/10000 = 1%
+    // Annualized over 1 year: (1.01)^1 - 1 = 1%
+    expect(annRet).toBeCloseTo(0.01, 2);
+  });
+});
+
+describe("pnlBasedMonthlyReturns", () => {
+  /** @req DIVE-13 */
+  it("returns empty for insufficient data", () => {
+    expect(pnlBasedMonthlyReturns([], [])).toEqual([]);
+  });
+
+  /** @req DIVE-13 */
+  it("computes monthly deltaPnL / prevMonthAV", () => {
+    const av: TimeSeries = [
+      [Date.UTC(2024, 0, 1), 1000],
+      [Date.UTC(2024, 1, 1), 1050],
+      [Date.UTC(2024, 2, 1), 1080],
+    ];
+    const pnl: TimeSeries = [
+      [Date.UTC(2024, 0, 1), 0],
+      [Date.UTC(2024, 1, 1), 50],
+      [Date.UTC(2024, 2, 1), 80],
+    ];
+    const result = pnlBasedMonthlyReturns(av, pnl);
+    expect(result).toHaveLength(2);
+    expect(result[0]).toBeCloseTo(50 / 1000);  // 5%
+    expect(result[1]).toBeCloseTo(30 / 1050);  // ~2.86%
+  });
+
+  /** @req DIVE-13 */
+  it("strips deposit effect from monthly returns", () => {
+    // Month 1: deposit 5000, trading gain 20
+    const av: TimeSeries = [
+      [Date.UTC(2024, 0, 1), 1000],
+      [Date.UTC(2024, 1, 1), 6020], // 5000 deposit + 20 gain
+      [Date.UTC(2024, 2, 1), 6050], // 30 more gain
+    ];
+    const pnl: TimeSeries = [
+      [Date.UTC(2024, 0, 1), 0],
+      [Date.UTC(2024, 1, 1), 20],
+      [Date.UTC(2024, 2, 1), 50],
+    ];
+    const result = pnlBasedMonthlyReturns(av, pnl);
+    expect(result).toHaveLength(2);
+    expect(result[0]).toBeCloseTo(20 / 1000);  // 2% (not 502%)
+    expect(result[1]).toBeCloseTo(30 / 6020);
   });
 });

@@ -4,14 +4,57 @@ import userEvent from "@testing-library/user-event";
 import { DeepDiveFilters } from "@/components/deep-dive/deep-dive-filters";
 
 describe("DeepDiveFilters", () => {
+  /** @req DIVE-11 */
+  it("renders period buttons", () => {
+    render(
+      <DeepDiveFilters
+        minTvl={500000}
+        minAgeDays={180}
+        period="ITD"
+        onMinTvlChange={vi.fn()}
+        onMinAgeDaysChange={vi.fn()}
+        onPeriodChange={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("7D")).toBeInTheDocument();
+    expect(screen.getByText("30D")).toBeInTheDocument();
+    expect(screen.getByText("90D")).toBeInTheDocument();
+    expect(screen.getByText("365D")).toBeInTheDocument();
+    expect(screen.getByText("YTD")).toBeInTheDocument();
+    expect(screen.getByText("ITD")).toBeInTheDocument();
+  });
+
+  /** @req DIVE-11 */
+  it("calls onPeriodChange when period button is clicked", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+
+    render(
+      <DeepDiveFilters
+        minTvl={500000}
+        minAgeDays={180}
+        period="ITD"
+        onMinTvlChange={vi.fn()}
+        onMinAgeDaysChange={vi.fn()}
+        onPeriodChange={onChange}
+      />,
+    );
+
+    await user.click(screen.getByText("30D"));
+    expect(onChange).toHaveBeenCalledWith("30D");
+  });
+
   /** @req DIVE-02 */
   it("renders TVL preset buttons", () => {
     render(
       <DeepDiveFilters
         minTvl={500000}
         minAgeDays={180}
+        period="ITD"
         onMinTvlChange={vi.fn()}
         onMinAgeDaysChange={vi.fn()}
+        onPeriodChange={vi.fn()}
       />,
     );
 
@@ -28,8 +71,10 @@ describe("DeepDiveFilters", () => {
       <DeepDiveFilters
         minTvl={500000}
         minAgeDays={180}
+        period="ITD"
         onMinTvlChange={vi.fn()}
         onMinAgeDaysChange={vi.fn()}
+        onPeriodChange={vi.fn()}
       />,
     );
 
@@ -48,8 +93,10 @@ describe("DeepDiveFilters", () => {
       <DeepDiveFilters
         minTvl={500000}
         minAgeDays={180}
+        period="ITD"
         onMinTvlChange={onChange}
         onMinAgeDaysChange={vi.fn()}
+        onPeriodChange={vi.fn()}
       />,
     );
 
@@ -66,8 +113,10 @@ describe("DeepDiveFilters", () => {
       <DeepDiveFilters
         minTvl={500000}
         minAgeDays={180}
+        period="ITD"
         onMinTvlChange={vi.fn()}
         onMinAgeDaysChange={onChange}
+        onPeriodChange={vi.fn()}
       />,
     );
 
@@ -81,8 +130,10 @@ describe("DeepDiveFilters", () => {
       <DeepDiveFilters
         minTvl={750000}
         minAgeDays={180}
+        period="ITD"
         onMinTvlChange={vi.fn()}
         onMinAgeDaysChange={vi.fn()}
+        onPeriodChange={vi.fn()}
       />,
     );
 
@@ -96,12 +147,15 @@ describe("DeepDiveFilters", () => {
       <DeepDiveFilters
         minTvl={500000}
         minAgeDays={120}
+        period="ITD"
         onMinTvlChange={vi.fn()}
         onMinAgeDaysChange={vi.fn()}
+        onPeriodChange={vi.fn()}
       />,
     );
 
     const input = screen.getByLabelText("Minimum age in days") as HTMLInputElement;
     expect(input.value).toBe("120");
   });
+
 });

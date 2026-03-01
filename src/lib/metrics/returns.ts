@@ -147,3 +147,139 @@ export function monthlyDistributionStats(monthlyRets: number[]): MonthlyDistribu
     worstMonth: Math.min(...monthlyRets),
   };
 }
+
+/**
+ * PnL-based daily returns: deltaPnL / AV_prev.
+ * Strips out deposit/withdrawal effects by using PnL (trading-only)
+ * divided by the previous day's account value.
+ * Requires both series to be aligned by timestamp (same days).
+ */
+export function pnlBasedDailyReturns(
+  accountValueHistory: TimeSeries,
+  pnlHistory: TimeSeries,
+): number[] {
+  if (accountValueHistory.length < 2 || pnlHistory.length < 2) return [];
+
+  // Group AV by day, take last value per day
+  const avByDay = new Map<number, number>();
+  for (const [ts, val] of accountValueHistory) {
+    avByDay.set(Math.floor(ts / MS_PER_DAY), val);
+  }
+
+  // Group PnL by day, take last value per day
+  const pnlByDay = new Map<number, number>();
+  for (const [ts, val] of pnlHistory) {
+    pnlByDay.set(Math.floor(ts / MS_PER_DAY), val);
+  }
+
+  // Find common days sorted
+  const commonDays = Array.from(avByDay.keys())
+    .filter((d) => pnlByDay.has(d))
+    .sort((a, b) => a - b);
+
+  if (commonDays.length < 2) return [];
+
+  const returns: number[] = [];
+  for (let i = 1; i < commonDays.length; i++) {
+    const prevAv = avByDay.get(commonDays[i - 1])!;
+    const deltaPnl = pnlByDay.get(commonDays[i])! - pnlByDay.get(commonDays[i - 1])!;
+
+    if (prevAv === 0) {
+      returns.push(0);
+    } else {
+      returns.push(deltaPnl / prevAv);
+    }
+  }
+  return returns;
+}
+
+/**
+ * PnL-based cumulative return: totalPnL / startingAV.
+ * Flow-adjusted: measures trading performance relative to starting capital.
+ */
+export function pnlBasedCumulativeReturn(
+  accountValueHistory: TimeSeries,
+  pnlHistory: TimeSeries,
+): number {
+  if (accountValueHistory.length < 2 || pnlHistory.length < 2) return 0;
+  const startAv = accountValueHistory[0][1];
+  if (startAv === 0) return 0;
+  const totalPnl = pnlHistory[pnlHistory.length - 1][1] - pnlHistory[0][1];
+  return totalPnl / startAv;
+}
+
+/**
+ * PnL-based annualized return.
+ * Compounds PnL-based daily returns over the period, then annualizes.
+ */
+export function pnlBasedAnnualizedReturn(
+  accountValueHistory: TimeSeries,
+  pnlHistory: TimeSeries,
+): number {
+  const daily = pnlBasedDailyReturns(accountValueHistory, pnlHistory);
+  if (daily.length === 0) return 0;
+
+  // Compound daily returns to get total return
+  let compounded = 1;
+  for (const r of daily) {
+    compounded *= 1 + r;
+  }
+
+  const elapsedMs =
+    accountValueHistory[accountValueHistory.length - 1][0] - accountValueHistory[0][0];
+  const years = elapsedMs / (MS_PER_DAY * DAYS_PER_YEAR);
+  if (years <= 0) return 0;
+
+  return Math.pow(compounded, 1 / years) - 1;
+}
+
+/**
+ * PnL-based monthly returns: deltaPnL per month / AV at start of month.
+ * Flow-adjusted version of monthlyReturns.
+ */
+export function pnlBasedMonthlyReturns(
+  accountValueHistory: TimeSeries,
+  pnlHistory: TimeSeries,
+): number[] {
+  if (accountValueHistory.length < 2 || pnlHistory.length < 2) return [];
+
+  // Group AV by month, take last value per month
+  const avByMonth = new Map<string, number>();
+  for (const [ts, val] of accountValueHistory) {
+    const date = new Date(ts);
+    const key = `${date.getUTCFullYear()}-${date.getUTCMonth()}`;
+    avByMonth.set(key, val);
+  }
+
+  // Group PnL by month, take last value per month
+  const pnlByMonth = new Map<string, number>();
+  for (const [ts, val] of pnlHistory) {
+    const date = new Date(ts);
+    const key = `${date.getUTCFullYear()}-${date.getUTCMonth()}`;
+    pnlByMonth.set(key, val);
+  }
+
+  // Find common months sorted
+  const commonMonths = Array.from(avByMonth.keys())
+    .filter((m) => pnlByMonth.has(m))
+    .sort((a, b) => {
+      const [ay, am] = a.split("-").map(Number);
+      const [by, bm] = b.split("-").map(Number);
+      return ay !== by ? ay - by : am - bm;
+    });
+
+  if (commonMonths.length < 2) return [];
+
+  const returns: number[] = [];
+  for (let i = 1; i < commonMonths.length; i++) {
+    const prevAv = avByMonth.get(commonMonths[i - 1])!;
+    const deltaPnl = pnlByMonth.get(commonMonths[i])! - pnlByMonth.get(commonMonths[i - 1])!;
+
+    if (prevAv === 0) {
+      returns.push(0);
+    } else {
+      returns.push(deltaPnl / prevAv);
+    }
+  }
+  return returns;
+}

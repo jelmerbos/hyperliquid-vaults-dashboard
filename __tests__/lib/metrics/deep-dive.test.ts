@@ -1,8 +1,11 @@
 import { describe, it, expect } from "vitest";
 import {
   computeDeepDiveMetrics,
+  computePercentileRanks,
   filterQualifyingVaults,
   pickTopVaults,
+  stripLeadingZeros,
+  sliceToPeriod,
 } from "@/lib/metrics/deep-dive";
 import { beta } from "@/lib/metrics/benchmark";
 import { dailyReturns } from "@/lib/metrics";
@@ -19,6 +22,13 @@ function makeHistory(days: number, startValue: number = 10000, dailyReturn: numb
     value *= 1 + dailyReturn;
   }
   return series;
+}
+
+// Generate a synthetic PnL history matching account value history
+function makePnlHistory(avHistory: TimeSeries): TimeSeries {
+  if (avHistory.length === 0) return [];
+  const start = avHistory[0][1];
+  return avHistory.map(([ts, val]) => [ts, val - start]);
 }
 
 // Helper to make mock vault list items
@@ -44,40 +54,105 @@ function makeVaultListItem(
   };
 }
 
-describe("computeDeepDiveMetrics", () => {
+describe("stripLeadingZeros", () => {
   /** @req DIVE-12 */
-  it("returns null for insufficient data (< 30 points)", () => {
-    const history = makeHistory(10);
-    expect(computeDeepDiveMetrics(history)).toBeNull();
+  it("strips leading zero values from series", () => {
+    const series: TimeSeries = [
+      [1000, 0],
+      [2000, 0],
+      [3000, 100],
+      [4000, 110],
+    ];
+    const result = stripLeadingZeros(series);
+    expect(result).toHaveLength(2);
+    expect(result[0][1]).toBe(100);
   });
 
   /** @req DIVE-12 */
-  it("returns null for exactly 29 data points", () => {
-    const history = makeHistory(29);
-    expect(computeDeepDiveMetrics(history)).toBeNull();
+  it("returns original series if no leading zeros", () => {
+    const series: TimeSeries = [[1000, 100], [2000, 110]];
+    const result = stripLeadingZeros(series);
+    expect(result).toHaveLength(2);
+  });
+
+  /** @req DIVE-12 */
+  it("strips near-zero values (< 0.01)", () => {
+    const series: TimeSeries = [
+      [1000, 0.005],
+      [2000, 50],
+      [3000, 60],
+    ];
+    const result = stripLeadingZeros(series);
+    expect(result).toHaveLength(2);
+    expect(result[0][1]).toBe(50);
+  });
+});
+
+describe("sliceToPeriod", () => {
+  /** @req DIVE-11 */
+  it("returns full series for ITD period", () => {
+    const series = makeHistory(100);
+    const result = sliceToPeriod(series, "ITD");
+    expect(result).toHaveLength(100);
+  });
+
+  /** @req DIVE-11 */
+  it("slices to last 30 days for 30D period", () => {
+    const series = makeHistory(100);
+    const result = sliceToPeriod(series, "30D");
+    expect(result.length).toBeGreaterThanOrEqual(29);
+    expect(result.length).toBeLessThanOrEqual(31);
+  });
+
+  /** @req DIVE-11 */
+  it("slices to last 7 days for 7D period", () => {
+    const series = makeHistory(100);
+    const result = sliceToPeriod(series, "7D");
+    expect(result.length).toBeGreaterThanOrEqual(6);
+    expect(result.length).toBeLessThanOrEqual(8);
+  });
+
+  /** @req DIVE-11 */
+  it("returns full series if sliced result would be < 2 points", () => {
+    const series = makeHistory(5);
+    const result = sliceToPeriod(series, "7D");
+    // 5 days of data with 7D lookback: all points are within window
+    expect(result.length).toBeGreaterThanOrEqual(2);
+  });
+});
+
+describe("computeDeepDiveMetrics", () => {
+  /** @req DIVE-12 */
+  it("returns null for insufficient data (< 5 points)", () => {
+    const history = makeHistory(3);
+    const pnl = makePnlHistory(history);
+    expect(computeDeepDiveMetrics(history, pnl)).toBeNull();
   });
 
   /** @req DIVE-06 */
-  it("returns metrics for 30+ data points", () => {
+  it("returns metrics for 5+ data points", () => {
     const history = makeHistory(60, 10000, 0.002);
-    const metrics = computeDeepDiveMetrics(history);
+    const pnl = makePnlHistory(history);
+    const metrics = computeDeepDiveMetrics(history, pnl);
 
     expect(metrics).not.toBeNull();
     expect(metrics!.annReturn).toBeGreaterThan(0);
     expect(metrics!.cumReturn).toBeGreaterThan(0);
+    expect(metrics!.pnl).toBeGreaterThan(0);
     expect(metrics!.annVol).toBeGreaterThan(0);
     expect(metrics!.sharpe).toBeGreaterThan(0);
-    // Sortino is 0 when there are no negative returns (no downside deviation)
     expect(metrics!.sortino).toBeGreaterThanOrEqual(0);
   });
 
   /** @req DIVE-06 */
-  it("computes all expected metric fields", () => {
+  it("computes all expected metric fields including pnl", () => {
     const history = makeHistory(90, 10000, 0.001);
-    const metrics = computeDeepDiveMetrics(history)!;
+    const pnl = makePnlHistory(history);
+    const metrics = computeDeepDiveMetrics(history, pnl)!;
 
     expect(metrics).toHaveProperty("annReturn");
     expect(metrics).toHaveProperty("cumReturn");
+    expect(metrics).toHaveProperty("pnl");
     expect(metrics).toHaveProperty("annVol");
     expect(metrics).toHaveProperty("maxDD");
     expect(metrics).toHaveProperty("maxDDDuration");
@@ -96,7 +171,8 @@ describe("computeDeepDiveMetrics", () => {
   /** @req DIVE-06 */
   it("initializes beta fields as null", () => {
     const history = makeHistory(60);
-    const metrics = computeDeepDiveMetrics(history)!;
+    const pnl = makePnlHistory(history);
+    const metrics = computeDeepDiveMetrics(history, pnl)!;
 
     expect(metrics.betaBtc).toBeNull();
     expect(metrics.betaHype).toBeNull();
@@ -104,24 +180,49 @@ describe("computeDeepDiveMetrics", () => {
 
   /** @req DIVE-06 */
   it("computes reasonable VaR and CVaR values", () => {
-    // Steady positive returns: VaR should be near zero or slightly positive
     const history = makeHistory(100, 10000, 0.001);
-    const metrics = computeDeepDiveMetrics(history)!;
+    const pnl = makePnlHistory(history);
+    const metrics = computeDeepDiveMetrics(history, pnl)!;
 
-    // VaR is the 5th percentile return; for steady returns it should be close to the daily return
     expect(typeof metrics.var95).toBe("number");
     expect(typeof metrics.cvar95).toBe("number");
-    // CVaR should be <= VaR (further in the tail)
     expect(metrics.cvar95).toBeLessThanOrEqual(metrics.var95 + 1e-10);
   });
 
   /** @req DIVE-06 */
   it("computes correct win rate for always-positive returns", () => {
     const history = makeHistory(60, 10000, 0.005);
-    const metrics = computeDeepDiveMetrics(history)!;
+    const pnl = makePnlHistory(history);
+    const metrics = computeDeepDiveMetrics(history, pnl)!;
 
-    // All daily returns are positive (constant growth)
     expect(metrics.winRate).toBeCloseTo(1.0, 1);
+  });
+
+  /** @req DIVE-11 */
+  it("respects period parameter for metric computation", () => {
+    const history = makeHistory(100, 10000, 0.002);
+    const pnl = makePnlHistory(history);
+    const itdMetrics = computeDeepDiveMetrics(history, pnl, "ITD")!;
+    const shortMetrics = computeDeepDiveMetrics(history, pnl, "30D")!;
+
+    // Cumulative return for 30D should be less than ITD (shorter period)
+    expect(shortMetrics.cumReturn).toBeLessThan(itdMetrics.cumReturn);
+  });
+
+  /** @req DIVE-12 */
+  it("strips leading zeros before computing metrics", () => {
+    // Start with zeros, then real values
+    const zeros: TimeSeries = Array.from({ length: 5 }, (_, i) => [
+      Date.now() - (100 - i) * 86_400_000,
+      0,
+    ]);
+    const real = makeHistory(60, 10000, 0.002);
+    const history = [...zeros, ...real];
+    const pnl = makePnlHistory(history);
+    const metrics = computeDeepDiveMetrics(history, pnl);
+
+    expect(metrics).not.toBeNull();
+    expect(metrics!.annReturn).toBeGreaterThan(0);
   });
 });
 
@@ -190,7 +291,7 @@ describe("pickTopVaults", () => {
       ),
     );
 
-    const result = pickTopVaults(vaults, 10);
+    const result = pickTopVaults(vaults, 5, 5);
     expect(result.length).toBeLessThanOrEqual(10);
     expect(result.length).toBeGreaterThanOrEqual(5);
 
@@ -208,31 +309,133 @@ describe("pickTopVaults", () => {
       makeVaultListItem("0xc", "200000", 0.1, 200),
     ];
 
-    const result = pickTopVaults(vaults, 10);
+    const result = pickTopVaults(vaults, 5, 5);
     const addresses = result.map((v) => v.summary.vaultAddress);
     const unique = new Set(addresses);
     expect(addresses.length).toBe(unique.size); // no duplicates
   });
 
   /** @req DIVE-04 */
-  it("respects maxCount limit", () => {
+  it("respects separate topByTvl and topByReturn limits", () => {
     const vaults = Array.from({ length: 20 }, (_, i) =>
-      makeVaultListItem(`0x${i}`, String(i * 100000), i * 0.05, 200),
+      makeVaultListItem(`0x${i}`, String((20 - i) * 100000), i * 0.05, 200),
     );
 
-    const result = pickTopVaults(vaults, 5);
+    // 3 by TVL + 2 by APR = at most 5
+    const result = pickTopVaults(vaults, 3, 2);
     expect(result.length).toBeLessThanOrEqual(5);
+    expect(result.length).toBeGreaterThanOrEqual(2);
   });
 
   /** @req DIVE-04 */
-  it("returns all vaults if fewer than maxCount", () => {
+  it("allows asymmetric selection (10 by TVL, 3 by return)", () => {
+    const vaults = Array.from({ length: 20 }, (_, i) =>
+      makeVaultListItem(
+        `0x${i.toString(16).padStart(2, "0")}`,
+        String((20 - i) * 100000),
+        i * 0.05,
+        200,
+      ),
+    );
+
+    const result = pickTopVaults(vaults, 10, 3);
+    // At most 13 unique vaults (10 TVL + 3 APR, likely some overlap)
+    expect(result.length).toBeLessThanOrEqual(13);
+    expect(result.length).toBeGreaterThanOrEqual(10);
+  });
+
+  /** @req DIVE-04 */
+  it("returns all vaults if fewer than requested", () => {
     const vaults = [
       makeVaultListItem("0xa", "1000000", 0.5, 200),
       makeVaultListItem("0xb", "500000", 0.3, 200),
     ];
 
-    const result = pickTopVaults(vaults, 10);
+    const result = pickTopVaults(vaults, 10, 10);
     expect(result).toHaveLength(2);
+  });
+});
+
+describe("computePercentileRanks", () => {
+  function makeTestMetrics(overrides: Partial<DeepDiveMetrics> = {}): DeepDiveMetrics {
+    return {
+      annReturn: 0.1,
+      cumReturn: 0.1,
+      pnl: 1000,
+      annVol: 0.2,
+      maxDD: -0.1,
+      maxDDDuration: 10,
+      sharpe: 0.5,
+      sortino: 0.7,
+      calmar: 1.0,
+      recoveryFactor: 1.0,
+      var95: -0.02,
+      cvar95: -0.03,
+      winRate: 0.5,
+      positiveMonthPct: 0.5,
+      betaBtc: null,
+      betaHype: null,
+      ...overrides,
+    };
+  }
+
+  /** @req DIVE-14 */
+  it("returns empty array for empty input", () => {
+    expect(computePercentileRanks([])).toEqual([]);
+  });
+
+  /** @req DIVE-14 */
+  it("ranks higher-is-better metrics correctly", () => {
+    const metrics = [
+      makeTestMetrics({ sharpe: 0.5 }),
+      makeTestMetrics({ sharpe: 1.5 }),
+      makeTestMetrics({ sharpe: 2.5 }),
+    ];
+    const ranks = computePercentileRanks(metrics);
+    expect(ranks[0].sharpe).toBe(0);   // worst
+    expect(ranks[1].sharpe).toBe(50);  // middle
+    expect(ranks[2].sharpe).toBe(100); // best
+  });
+
+  /** @req DIVE-14 */
+  it("ranks lower-is-better metrics correctly (lower vol = higher percentile)", () => {
+    const metrics = [
+      makeTestMetrics({ annVol: 0.10 }),  // lowest vol = best
+      makeTestMetrics({ annVol: 0.20 }),
+      makeTestMetrics({ annVol: 0.30 }),  // highest vol = worst
+    ];
+    const ranks = computePercentileRanks(metrics);
+    expect(ranks[0].annVol).toBe(100);  // lowest vol = best percentile
+    expect(ranks[1].annVol).toBe(50);
+    expect(ranks[2].annVol).toBe(0);    // highest vol = worst percentile
+  });
+
+  /** @req DIVE-14 */
+  it("handles null metrics gracefully", () => {
+    const metrics = [
+      makeTestMetrics({ sharpe: 1.0 }),
+      null,
+      makeTestMetrics({ sharpe: 2.0 }),
+    ];
+    const ranks = computePercentileRanks(metrics);
+    expect(ranks).toHaveLength(3);
+    expect(ranks[0].sharpe).toBe(0);
+    expect(ranks[1].sharpe).toBeUndefined();
+    expect(ranks[2].sharpe).toBe(100);
+  });
+
+  /** @req DIVE-14 */
+  it("computes percentiles for maxDD (less negative = better = higher percentile)", () => {
+    const metrics = [
+      makeTestMetrics({ maxDD: -0.30 }), // worst DD (30%)
+      makeTestMetrics({ maxDD: -0.10 }), // best DD (10%)
+      makeTestMetrics({ maxDD: -0.20 }),  // middle
+    ];
+    const ranks = computePercentileRanks(metrics);
+    // -0.10 is numerically highest = best percentile (higher-is-better)
+    expect(ranks[1].maxDD).toBe(100); // -0.10 = best
+    expect(ranks[2].maxDD).toBe(50);  // -0.20 = middle
+    expect(ranks[0].maxDD).toBe(0);   // -0.30 = worst
   });
 });
 
@@ -261,7 +464,8 @@ describe("beta enrichment", () => {
   /** @req DIVE-07 */
   it("DeepDiveMetrics betaBtc and betaHype start as null and can be set", () => {
     const history = makeHistory(60, 10000, 0.002);
-    const metrics = computeDeepDiveMetrics(history)!;
+    const pnl = makePnlHistory(history);
+    const metrics = computeDeepDiveMetrics(history, pnl)!;
 
     expect(metrics.betaBtc).toBeNull();
     expect(metrics.betaHype).toBeNull();

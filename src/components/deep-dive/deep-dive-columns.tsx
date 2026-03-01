@@ -1,7 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { ColumnDef } from "@tanstack/react-table";
-import { ArrowUpDown } from "lucide-react";
+import { ArrowUpDown, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   formatCurrency,
@@ -9,6 +10,9 @@ import {
   formatRatio,
   formatDaysAgo,
 } from "@/lib/utils/format";
+import { inferStrategy } from "@/lib/utils/infer-strategy";
+import { DDMemoButton } from "./dd-memo-button";
+import type { StrategyCategory } from "@/lib/ai/types";
 import type { DeepDiveRow } from "@/lib/hooks/use-deep-dive-vaults";
 
 function SortHeader({
@@ -56,6 +60,39 @@ function RatioCell({ value }: { value: number | null | undefined }) {
   return <span>{formatRatio(value)}</span>;
 }
 
+function PercentileBadge({ pct }: { pct: number | undefined }) {
+  if (pct == null) return null;
+  let bg = "bg-muted text-muted-foreground";
+  if (pct >= 75) bg = "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300";
+  else if (pct <= 25) bg = "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300";
+  return (
+    <span className={`ml-1 text-[10px] px-1 py-0.5 rounded ${bg}`}>
+      p{pct}
+    </span>
+  );
+}
+
+const STRATEGY_COLORS: Record<StrategyCategory, string> = {
+  "delta-neutral": "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300",
+  "directional-long": "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300",
+  "directional-short": "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300",
+  "market-making": "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300",
+  "momentum": "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300",
+  "mean-reversion": "bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-300",
+  "arbitrage": "bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-300",
+  "multi-strategy": "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300",
+  "yield-farming": "bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-300",
+  "unknown": "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300",
+};
+
+function StrategyBadge({ strategy }: { strategy: StrategyCategory }) {
+  return (
+    <span className={`text-[10px] px-1.5 py-0.5 rounded whitespace-nowrap ${STRATEGY_COLORS[strategy]}`}>
+      {strategy}
+    </span>
+  );
+}
+
 export const deepDiveColumns: ColumnDef<DeepDiveRow>[] = [
   // Checkbox
   {
@@ -87,10 +124,47 @@ export const deepDiveColumns: ColumnDef<DeepDiveRow>[] = [
     id: "name",
     header: ({ column }) => <SortHeader column={column} label="Name" />,
     cell: ({ row }) => (
-      <div className="font-medium max-w-[200px] truncate" title={row.original.vault.name}>
+      <Link
+        href={`/vaults/${row.original.vault.vaultAddress}`}
+        className="font-medium max-w-[200px] truncate flex items-center gap-1 hover:underline"
+        title={row.original.vault.name}
+      >
         {row.original.vault.name}
-      </div>
+        <ExternalLink className="h-3 w-3 flex-shrink-0 text-muted-foreground" />
+      </Link>
     ),
+  },
+  {
+    accessorFn: (row) => row.vault.description || "",
+    id: "description",
+    header: "Description",
+    cell: ({ row }) => {
+      const desc = row.original.vault.description;
+      if (!desc) return <span className="text-muted-foreground">-</span>;
+      return (
+        <span
+          className="max-w-[250px] truncate block text-xs text-muted-foreground"
+          title={desc}
+        >
+          {desc}
+        </span>
+      );
+    },
+    enableSorting: false,
+  },
+  {
+    accessorFn: (row) =>
+      inferStrategy(row.vault.name, row.vault.description),
+    id: "strategy",
+    header: "Strategy",
+    cell: ({ row }) => {
+      const strategy = inferStrategy(
+        row.original.vault.name,
+        row.original.vault.description,
+      );
+      return <StrategyBadge strategy={strategy} />;
+    },
+    enableSorting: false,
   },
   {
     accessorFn: (row) => parseFloat(row.listItem.summary.tvl),
@@ -114,7 +188,10 @@ export const deepDiveColumns: ColumnDef<DeepDiveRow>[] = [
     id: "annReturn",
     header: ({ column }) => <SortHeader column={column} label="Ann. Return" />,
     cell: ({ row }) => (
-      <MetricCell value={row.original.metrics?.annReturn} formatter={formatPercent} />
+      <span className="inline-flex items-center">
+        <MetricCell value={row.original.metrics?.annReturn} formatter={formatPercent} />
+        <PercentileBadge pct={row.original.percentiles?.annReturn} />
+      </span>
     ),
     sortDescFirst: true,
     sortUndefined: "last",
@@ -124,7 +201,22 @@ export const deepDiveColumns: ColumnDef<DeepDiveRow>[] = [
     id: "cumReturn",
     header: ({ column }) => <SortHeader column={column} label="Cum. Return" />,
     cell: ({ row }) => (
-      <MetricCell value={row.original.metrics?.cumReturn} formatter={formatPercent} />
+      <span className="inline-flex items-center">
+        <MetricCell value={row.original.metrics?.cumReturn} formatter={formatPercent} />
+        <PercentileBadge pct={row.original.percentiles?.cumReturn} />
+      </span>
+    ),
+    sortDescFirst: true,
+    sortUndefined: "last",
+  },
+
+  // P&L
+  {
+    accessorFn: (row) => row.metrics?.pnl ?? null,
+    id: "pnl",
+    header: ({ column }) => <SortHeader column={column} label="P&L" />,
+    cell: ({ row }) => (
+      <MetricCell value={row.original.metrics?.pnl} formatter={formatCurrency} />
     ),
     sortDescFirst: true,
     sortUndefined: "last",
@@ -137,7 +229,10 @@ export const deepDiveColumns: ColumnDef<DeepDiveRow>[] = [
     header: ({ column }) => <SortHeader column={column} label="Vol" />,
     cell: ({ row }) =>
       row.original.metrics ? (
-        <span>{formatPercent(row.original.metrics.annVol)}</span>
+        <span className="inline-flex items-center">
+          <span>{formatPercent(row.original.metrics.annVol)}</span>
+          <PercentileBadge pct={row.original.percentiles?.annVol} />
+        </span>
       ) : (
         <span className="text-muted-foreground">N/A</span>
       ),
@@ -148,7 +243,10 @@ export const deepDiveColumns: ColumnDef<DeepDiveRow>[] = [
     id: "maxDD",
     header: ({ column }) => <SortHeader column={column} label="Max DD" />,
     cell: ({ row }) => (
-      <MetricCell value={row.original.metrics?.maxDD} formatter={formatPercent} />
+      <span className="inline-flex items-center">
+        <MetricCell value={row.original.metrics?.maxDD} formatter={formatPercent} />
+        <PercentileBadge pct={row.original.percentiles?.maxDD} />
+      </span>
     ),
     sortUndefined: "last",
   },
@@ -157,7 +255,10 @@ export const deepDiveColumns: ColumnDef<DeepDiveRow>[] = [
     id: "var95",
     header: ({ column }) => <SortHeader column={column} label="VaR 95%" />,
     cell: ({ row }) => (
-      <MetricCell value={row.original.metrics?.var95} formatter={formatPercent} />
+      <span className="inline-flex items-center">
+        <MetricCell value={row.original.metrics?.var95} formatter={formatPercent} />
+        <PercentileBadge pct={row.original.percentiles?.var95} />
+      </span>
     ),
     sortUndefined: "last",
   },
@@ -166,7 +267,10 @@ export const deepDiveColumns: ColumnDef<DeepDiveRow>[] = [
     id: "cvar95",
     header: ({ column }) => <SortHeader column={column} label="CVaR 95%" />,
     cell: ({ row }) => (
-      <MetricCell value={row.original.metrics?.cvar95} formatter={formatPercent} />
+      <span className="inline-flex items-center">
+        <MetricCell value={row.original.metrics?.cvar95} formatter={formatPercent} />
+        <PercentileBadge pct={row.original.percentiles?.cvar95} />
+      </span>
     ),
     sortUndefined: "last",
   },
@@ -176,7 +280,12 @@ export const deepDiveColumns: ColumnDef<DeepDiveRow>[] = [
     accessorFn: (row) => row.metrics?.sharpe ?? null,
     id: "sharpe",
     header: ({ column }) => <SortHeader column={column} label="Sharpe" />,
-    cell: ({ row }) => <RatioCell value={row.original.metrics?.sharpe} />,
+    cell: ({ row }) => (
+      <span className="inline-flex items-center">
+        <RatioCell value={row.original.metrics?.sharpe} />
+        <PercentileBadge pct={row.original.percentiles?.sharpe} />
+      </span>
+    ),
     sortDescFirst: true,
     sortUndefined: "last",
   },
@@ -184,7 +293,12 @@ export const deepDiveColumns: ColumnDef<DeepDiveRow>[] = [
     accessorFn: (row) => row.metrics?.sortino ?? null,
     id: "sortino",
     header: ({ column }) => <SortHeader column={column} label="Sortino" />,
-    cell: ({ row }) => <RatioCell value={row.original.metrics?.sortino} />,
+    cell: ({ row }) => (
+      <span className="inline-flex items-center">
+        <RatioCell value={row.original.metrics?.sortino} />
+        <PercentileBadge pct={row.original.percentiles?.sortino} />
+      </span>
+    ),
     sortDescFirst: true,
     sortUndefined: "last",
   },
@@ -192,7 +306,12 @@ export const deepDiveColumns: ColumnDef<DeepDiveRow>[] = [
     accessorFn: (row) => row.metrics?.calmar ?? null,
     id: "calmar",
     header: ({ column }) => <SortHeader column={column} label="Calmar" />,
-    cell: ({ row }) => <RatioCell value={row.original.metrics?.calmar} />,
+    cell: ({ row }) => (
+      <span className="inline-flex items-center">
+        <RatioCell value={row.original.metrics?.calmar} />
+        <PercentileBadge pct={row.original.percentiles?.calmar} />
+      </span>
+    ),
     sortDescFirst: true,
     sortUndefined: "last",
   },
@@ -202,7 +321,10 @@ export const deepDiveColumns: ColumnDef<DeepDiveRow>[] = [
     header: ({ column }) => <SortHeader column={column} label="Win Rate" />,
     cell: ({ row }) =>
       row.original.metrics ? (
-        <span>{formatPercent(row.original.metrics.winRate)}</span>
+        <span className="inline-flex items-center">
+          <span>{formatPercent(row.original.metrics.winRate)}</span>
+          <PercentileBadge pct={row.original.percentiles?.winRate} />
+        </span>
       ) : (
         <span className="text-muted-foreground">N/A</span>
       ),
@@ -224,5 +346,23 @@ export const deepDiveColumns: ColumnDef<DeepDiveRow>[] = [
     header: ({ column }) => <SortHeader column={column} label="Beta (HYPE)" />,
     cell: ({ row }) => <RatioCell value={row.original.metrics?.betaHype} />,
     sortUndefined: "last",
+  },
+
+  // AI Due Diligence
+  {
+    id: "dd",
+    header: "AI DD",
+    cell: ({ row }) => {
+      if (!row.original.metrics) {
+        return <span className="text-muted-foreground text-xs">-</span>;
+      }
+      return (
+        <DDMemoButton
+          vault={row.original.vault}
+          metrics={row.original.metrics}
+        />
+      );
+    },
+    enableSorting: false,
   },
 ];

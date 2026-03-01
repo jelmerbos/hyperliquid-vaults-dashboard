@@ -69,7 +69,8 @@ function CompareContent() {
       const allTime = r.vault.portfolio.find(([p]) => p === "allTime");
       return {
         name: r.vault.name,
-        data: allTime ? parseTimeSeries(allTime[1].accountValueHistory) : [],
+        avHistory: allTime ? parseTimeSeries(allTime[1].accountValueHistory) : [],
+        pnlHistory: allTime ? parseTimeSeries(allTime[1].pnlHistory) : [],
       };
     });
   }, [compareRows]);

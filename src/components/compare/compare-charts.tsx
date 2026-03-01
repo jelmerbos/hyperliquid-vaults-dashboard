@@ -17,24 +17,53 @@ const COLORS = ["#2563eb", "#dc2626", "#16a34a", "#ca8a04"];
 
 interface ChartVault {
   name: string;
-  data: TimeSeries;
+  avHistory: TimeSeries;
+  pnlHistory: TimeSeries;
+}
+
+/**
+ * PnL-based normalization: shows what $100 invested would have become
+ * based purely on trading P&L, stripping deposit/withdrawal effects.
+ * Formula: 100 + (cumulativePnL / startAV) * 100
+ */
+function pnlNormalize(avHistory: TimeSeries, pnlHistory: TimeSeries) {
+  // Strip leading zeros
+  const firstNonZero = avHistory.findIndex(([, val]) => val > 0.01);
+  const cleanAv = firstNonZero > 0 ? avHistory.slice(firstNonZero) : avHistory;
+
+  if (cleanAv.length === 0 || pnlHistory.length === 0) return [];
+
+  const startAv = cleanAv[0][1];
+  if (startAv === 0) return [];
+
+  // Build PnL lookup by day
+  const MS_PER_DAY = 86_400_000;
+  const pnlByDay = new Map<number, number>();
+  for (const [ts, val] of pnlHistory) {
+    pnlByDay.set(Math.floor(ts / MS_PER_DAY), val);
+  }
+  const startPnl = pnlHistory[0][1];
+
+  return cleanAv.map(([ts]) => {
+    const day = Math.floor(ts / MS_PER_DAY);
+    const pnlVal = pnlByDay.get(day);
+    const cumPnl = pnlVal != null ? pnlVal - startPnl : 0;
+    return {
+      ts,
+      date: new Date(ts).toLocaleDateString(),
+      value: 100 + (cumPnl / startAv) * 100,
+    };
+  });
 }
 
 export function CompareCharts({ vaults }: { vaults: ChartVault[] }) {
   if (vaults.length === 0) return null;
 
-  // Normalize all series to start at 100
-  const normalized = vaults.map((v) => {
-    const start = v.data[0]?.[1] ?? 1;
-    return {
-      name: v.name,
-      data: v.data.map(([ts, val]) => ({
-        ts,
-        date: new Date(ts).toLocaleDateString(),
-        value: start === 0 ? 0 : (val / start) * 100,
-      })),
-    };
-  });
+  // PnL-based normalization: strips deposit/withdrawal effects
+  const normalized = vaults.map((v) => ({
+    name: v.name,
+    data: pnlNormalize(v.avHistory, v.pnlHistory),
+  })).filter((v) => v.data.length > 0);
 
   // Merge all dates
   const dateSet = new Set<number>();
@@ -76,7 +105,7 @@ export function CompareCharts({ vaults }: { vaults: ChartVault[] }) {
               <YAxis tick={{ fontSize: 12 }} />
               <Tooltip />
               <Legend />
-              {vaults.map((v, i) => (
+              {normalized.map((v, i) => (
                 <Line
                   key={v.name}
                   type="monotone"
