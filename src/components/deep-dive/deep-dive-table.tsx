@@ -106,7 +106,7 @@ export function DeepDiveTable({ rows, isLoading }: DeepDiveTableProps) {
             Compare Selected
           </Button>
           {selectedAddresses.length > 4 && (
-            <span className="text-sm text-red-600">Max 4 vaults for comparison</span>
+            <span className="text-sm text-[#f85149]">Max 4 vaults for comparison</span>
           )}
           {selectedAddresses.length === 1 && (
             <span className="text-sm text-muted-foreground">Select at least 2</span>
@@ -119,8 +119,17 @@ export function DeepDiveTable({ rows, isLoading }: DeepDiveTableProps) {
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id} className="whitespace-nowrap">
+                {headerGroup.headers.map((header, idx) => (
+                  <TableHead
+                    key={header.id}
+                    className={`whitespace-nowrap ${
+                      idx === 0
+                        ? "sticky left-0 z-20 bg-background"
+                        : idx === 1
+                          ? "sticky left-[40px] z-20 bg-background"
+                          : ""
+                    }`}
+                  >
                     {header.isPlaceholder
                       ? null
                       : flexRender(
@@ -144,8 +153,17 @@ export function DeepDiveTable({ rows, isLoading }: DeepDiveTableProps) {
                       : ""
                   }
                 >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id} className="whitespace-nowrap">
+                  {row.getVisibleCells().map((cell, idx) => (
+                    <TableCell
+                      key={cell.id}
+                      className={`whitespace-nowrap ${
+                        idx === 0
+                          ? "sticky left-0 z-10 bg-background"
+                          : idx === 1
+                            ? "sticky left-[40px] z-10 bg-background"
+                            : ""
+                      }`}
+                    >
                       {flexRender(
                         cell.column.columnDef.cell,
                         cell.getContext(),

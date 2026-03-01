@@ -91,13 +91,8 @@ function CompareContent() {
   );
 
   return (
-    <main className="container mx-auto py-8 px-4 space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Compare Vaults</h1>
-        <p className="text-muted-foreground mt-1">
-          Select 2-4 vaults to compare side by side
-        </p>
-      </div>
+    <div className="py-6 px-4 md:px-6 space-y-6">
+      <h1 className="text-2xl font-bold">Compare</h1>
 
       <CompareSelector
         vaults={activeVaults}
@@ -127,13 +122,13 @@ function CompareContent() {
           Select at least 2 vaults to compare
         </div>
       )}
-    </main>
+    </div>
   );
 }
 
 export default function ComparePage() {
   return (
-    <Suspense fallback={<div className="container mx-auto py-8 px-4">Loading...</div>}>
+    <Suspense fallback={<div className="py-6 px-4 md:px-6">Loading...</div>}>
       <CompareContent />
     </Suspense>
   );

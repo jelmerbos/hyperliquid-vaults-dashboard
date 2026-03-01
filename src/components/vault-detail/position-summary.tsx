@@ -57,7 +57,7 @@ export function PositionSummary({
       <SummaryCard
         title="Total Leverage"
         value={formatMultiple(leverage)}
-        className={leverage > 3 ? "text-red-600" : ""}
+        className={leverage > 3 ? "text-[#f85149]" : ""}
       />
       <SummaryCard
         title="Top 3 Concentration"

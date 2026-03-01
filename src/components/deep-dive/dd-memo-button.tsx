@@ -93,7 +93,7 @@ export function DDMemoButton({ vault, metrics }: DDMemoButtonProps) {
           )}
 
           {error && (
-            <div className="py-4 text-center text-sm text-red-600">
+            <div className="py-4 text-center text-sm text-[#f85149]">
               {error instanceof Error ? error.message : "Failed to generate memo"}
             </div>
           )}

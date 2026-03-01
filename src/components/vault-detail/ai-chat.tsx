@@ -92,7 +92,7 @@ export function AiChat({ vaultContext }: AiChatProps) {
 
           {/* Error display */}
           {error && (
-            <p className="text-sm text-red-600">{error}</p>
+            <p className="text-sm text-[#f85149]">{error}</p>
           )}
 
           {/* Input area */}

@@ -28,23 +28,26 @@ export function PerformanceChart({ data }: { data: TimeSeries }) {
         <div className="h-[300px]">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
               <XAxis
                 dataKey="date"
-                tick={{ fontSize: 12 }}
+                tick={{ fontSize: 12, fill: "var(--muted-foreground)" }}
+                stroke="var(--border)"
                 interval="preserveStartEnd"
               />
               <YAxis
-                tick={{ fontSize: 12 }}
+                tick={{ fontSize: 12, fill: "var(--muted-foreground)" }}
+                stroke="var(--border)"
                 tickFormatter={(v) => formatCurrency(v)}
               />
               <Tooltip
                 formatter={(v) => [formatCurrency(v as number), "Value"]}
+                contentStyle={{ backgroundColor: "var(--card)", border: "1px solid var(--border)", borderRadius: "8px", color: "var(--foreground)" }}
               />
               <Line
                 type="monotone"
                 dataKey="value"
-                stroke="#2563eb"
+                stroke="var(--accent-teal)"
                 dot={false}
                 strokeWidth={2}
               />

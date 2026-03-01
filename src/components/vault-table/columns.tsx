@@ -40,7 +40,7 @@ export const columns: ColumnDef<VaultListItem>[] = [
     cell: ({ row }) => {
       const apr = row.original.apr;
       return (
-        <span className={apr >= 0 ? "text-green-600" : "text-red-600"}>
+        <span className={apr >= 0 ? "text-accent-teal" : "text-[#f85149]"}>
           {formatPercent(apr)}
         </span>
       );

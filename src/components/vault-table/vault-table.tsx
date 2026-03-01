@@ -43,7 +43,7 @@ export function VaultTable() {
 
   if (error) {
     return (
-      <div className="py-10 text-center text-red-600">
+      <div className="py-10 text-center text-[#f85149]">
         Failed to load vaults: {error.message}
       </div>
     );

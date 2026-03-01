@@ -13,7 +13,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { TimeSeries } from "@/lib/metrics";
 
-const COLORS = ["#2563eb", "#dc2626", "#16a34a", "#ca8a04"];
+const COLORS = ["#7cfcce", "#f0883e", "#58a6ff", "#bc8cff"];
 
 interface ChartVault {
   name: string;
@@ -100,10 +100,10 @@ export function CompareCharts({ vaults }: { vaults: ChartVault[] }) {
         <div className="h-[400px]">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={sampled}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="date" tick={{ fontSize: 12 }} interval="preserveStartEnd" />
-              <YAxis tick={{ fontSize: 12 }} />
-              <Tooltip />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+              <XAxis dataKey="date" tick={{ fontSize: 12, fill: "var(--muted-foreground)" }} stroke="var(--border)" interval="preserveStartEnd" />
+              <YAxis tick={{ fontSize: 12, fill: "var(--muted-foreground)" }} stroke="var(--border)" />
+              <Tooltip contentStyle={{ backgroundColor: "var(--card)", border: "1px solid var(--border)", borderRadius: "8px", color: "var(--foreground)" }} />
               <Legend />
               {normalized.map((v, i) => (
                 <Line

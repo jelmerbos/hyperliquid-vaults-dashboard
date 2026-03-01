@@ -28,24 +28,27 @@ export function DrawdownChart({ data }: { data: TimeSeries }) {
         <div className="h-[200px]">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
               <XAxis
                 dataKey="date"
-                tick={{ fontSize: 12 }}
+                tick={{ fontSize: 12, fill: "var(--muted-foreground)" }}
+                stroke="var(--border)"
                 interval="preserveStartEnd"
               />
               <YAxis
-                tick={{ fontSize: 12 }}
+                tick={{ fontSize: 12, fill: "var(--muted-foreground)" }}
+                stroke="var(--border)"
                 tickFormatter={(v) => formatPercent(v)}
               />
               <Tooltip
                 formatter={(v) => [formatPercent(v as number), "Drawdown"]}
+                contentStyle={{ backgroundColor: "var(--card)", border: "1px solid var(--border)", borderRadius: "8px", color: "var(--foreground)" }}
               />
               <Area
                 type="monotone"
                 dataKey="drawdown"
-                stroke="#dc2626"
-                fill="#dc2626"
+                stroke="#f85149"
+                fill="#f85149"
                 fillOpacity={0.2}
                 dot={false}
               />

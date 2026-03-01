@@ -106,7 +106,7 @@ export function BenchmarkSection({
             <MetricCard
               title="Alpha (BTC)"
               value={formatPercent(btcMetrics.alpha)}
-              className={btcMetrics.alpha >= 0 ? "text-green-600" : "text-red-600"}
+              className={btcMetrics.alpha >= 0 ? "text-accent-teal" : "text-[#f85149]"}
             />
             <MetricCard title="IR (BTC)" value={formatRatio(btcMetrics.ir)} />
           </>
@@ -117,7 +117,7 @@ export function BenchmarkSection({
             <MetricCard
               title="Alpha (HYPE)"
               value={formatPercent(hypeMetrics.alpha)}
-              className={hypeMetrics.alpha >= 0 ? "text-green-600" : "text-red-600"}
+              className={hypeMetrics.alpha >= 0 ? "text-accent-teal" : "text-[#f85149]"}
             />
             <MetricCard title="IR (HYPE)" value={formatRatio(hypeMetrics.ir)} />
           </>

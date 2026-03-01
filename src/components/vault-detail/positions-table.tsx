@@ -14,8 +14,8 @@ import { formatCurrency, formatPercent } from "@/lib/utils/format";
 import type { VaultPositions } from "@/lib/api/types";
 
 function colorForValue(value: number): string {
-  if (value > 0) return "text-green-600";
-  if (value < 0) return "text-red-600";
+  if (value > 0) return "text-accent-teal";
+  if (value < 0) return "text-[#f85149]";
   return "";
 }
 

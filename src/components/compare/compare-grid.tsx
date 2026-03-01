@@ -20,8 +20,8 @@ interface CompareRow {
 function bestClass(values: number[], idx: number, higherIsBetter: boolean): string {
   const best = higherIsBetter ? Math.max(...values) : Math.min(...values);
   const worst = higherIsBetter ? Math.min(...values) : Math.max(...values);
-  if (values[idx] === best) return "text-green-600 font-semibold";
-  if (values[idx] === worst) return "text-red-600";
+  if (values[idx] === best) return "text-accent-teal font-semibold";
+  if (values[idx] === worst) return "text-[#f85149]";
   return "";
 }
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useMemo } from "react";
+import { use, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ import { BenchmarkSection } from "@/components/vault-detail/benchmark-section";
 import { AiAnalysis } from "@/components/vault-detail/ai-analysis";
 import { computeVaultMetrics } from "@/lib/metrics";
 import type { TimeSeries } from "@/lib/metrics";
+import { addRecentVault } from "@/lib/hooks/use-recent-vaults";
 
 function parseTimeSeries(raw: [number, string][]): TimeSeries {
   return raw.map(([ts, val]) => [ts, parseFloat(val)]);
@@ -61,26 +62,32 @@ export default function VaultDetailPage({
     return parseFloat(avHistory[avHistory.length - 1][1]);
   }, [vault, allTimeSnapshot]);
 
+  useEffect(() => {
+    if (vault) {
+      addRecentVault(address, vault.name);
+    }
+  }, [vault, address]);
+
   if (isLoading) {
     return (
-      <main className="container mx-auto py-8 px-4">
+      <div className="py-6 px-4 md:px-6">
         <div className="py-10 text-center text-muted-foreground">Loading vault details...</div>
-      </main>
+      </div>
     );
   }
 
   if (error || !vault) {
     return (
-      <main className="container mx-auto py-8 px-4">
-        <div className="py-10 text-center text-red-600">
+      <div className="py-6 px-4 md:px-6">
+        <div className="py-10 text-center text-[#f85149]">
           Failed to load vault: {error?.message ?? "Not found"}
         </div>
-      </main>
+      </div>
     );
   }
 
   return (
-    <main className="container mx-auto py-8 px-4 space-y-6">
+    <div className="py-6 px-4 md:px-6 space-y-6">
       <Link href="/">
         <Button variant="ghost" size="sm">
           <ArrowLeft className="mr-1 h-4 w-4" />
@@ -122,6 +129,6 @@ export default function VaultDetailPage({
           tvl={tvl}
         />
       )}
-    </main>
+    </div>
   );
 }

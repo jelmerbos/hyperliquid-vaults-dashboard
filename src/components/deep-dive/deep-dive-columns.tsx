@@ -39,8 +39,8 @@ function SortHeader({
 
 function colorClass(value: number | null | undefined): string {
   if (value == null) return "text-muted-foreground";
-  if (value > 0) return "text-green-600";
-  if (value < 0) return "text-red-600";
+  if (value > 0) return "text-accent-teal";
+  if (value < 0) return "text-[#f85149]";
   return "";
 }
 
@@ -179,6 +179,15 @@ export const deepDiveColumns: ColumnDef<DeepDiveRow>[] = [
     header: ({ column }) => <SortHeader column={column} label="Age" />,
     cell: ({ row }) =>
       formatDaysAgo(row.original.listItem.summary.createTimeMillis),
+    sortDescFirst: true,
+  },
+
+  // Leader Stake
+  {
+    accessorFn: (row) => row.vault.leaderFraction,
+    id: "leaderStake",
+    header: ({ column }) => <SortHeader column={column} label="Leader Stake" />,
+    cell: ({ row }) => formatPercent(row.original.vault.leaderFraction),
     sortDescFirst: true,
   },
 

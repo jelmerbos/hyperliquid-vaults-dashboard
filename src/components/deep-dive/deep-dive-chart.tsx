@@ -14,8 +14,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { DeepDiveRow } from "@/lib/hooks/use-deep-dive-vaults";
 
 const COLORS = [
-  "#2563eb", "#dc2626", "#16a34a", "#ca8a04", "#9333ea",
-  "#06b6d4", "#f97316", "#ec4899", "#6366f1", "#14b8a6",
+  "#7cfcce", "#f0883e", "#58a6ff", "#bc8cff", "#3fb68b",
+  "#f778ba", "#79c0ff", "#d2a8ff", "#56d364", "#ffa657",
 ];
 
 const MS_PER_DAY = 86_400_000;
@@ -108,14 +108,15 @@ export function DeepDiveChart({ rows }: DeepDiveChartProps) {
         <div className="h-[400px]">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={sampled}>
-              <CartesianGrid strokeDasharray="3 3" />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
               <XAxis
                 dataKey="date"
-                tick={{ fontSize: 11 }}
+                tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+                stroke="var(--border)"
                 interval="preserveStartEnd"
               />
-              <YAxis tick={{ fontSize: 11 }} />
-              <Tooltip />
+              <YAxis tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} stroke="var(--border)" />
+              <Tooltip contentStyle={{ backgroundColor: "var(--card)", border: "1px solid var(--border)", borderRadius: "8px", color: "var(--foreground)" }} />
               <Legend />
               {normalized.map((v, i) => (
                 <Line

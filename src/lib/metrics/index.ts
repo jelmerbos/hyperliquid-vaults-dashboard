@@ -22,6 +22,7 @@ import {
   calmarRatio,
   recoveryFactor,
 } from "./risk-adjusted";
+import { stripLeadingZeros } from "./deep-dive";
 
 export interface VaultMetrics {
   cumulativePnL: number;
@@ -44,19 +45,21 @@ export function computeVaultMetrics(
   accountValueHistory: TimeSeries,
   pnlHistory: TimeSeries,
 ): VaultMetrics {
-  const daily = dailyReturns(accountValueHistory);
-  const monthly = monthlyReturns(accountValueHistory);
-  const annRet = annualizedReturn(accountValueHistory);
+  // Strip leading near-zero entries (before deposits fill in)
+  const av = stripLeadingZeros(accountValueHistory);
+  const daily = dailyReturns(av);
+  const monthly = monthlyReturns(av);
+  const annRet = annualizedReturn(av);
   const annVol = annualizedVolatility(daily);
-  const maxDD = maxDrawdown(accountValueHistory);
-  const cumRet = cumulativeReturn(accountValueHistory);
+  const maxDD = maxDrawdown(av);
+  const cumRet = cumulativeReturn(av);
 
   return {
     cumulativePnL: cumulativePnL(pnlHistory),
     cumulativeReturn: cumRet,
     annualizedReturn: annRet,
     maxDrawdown: maxDD,
-    maxDrawdownDuration: maxDrawdownDuration(accountValueHistory),
+    maxDrawdownDuration: maxDrawdownDuration(av),
     annualizedVolatility: annVol,
     sharpeRatio: sharpeRatio(annRet, annVol),
     romad: romad(annRet, maxDD),
@@ -65,7 +68,7 @@ export function computeVaultMetrics(
     recoveryFactor: recoveryFactor(cumRet, maxDD),
     returnDistribution: returnDistributionStats(daily),
     monthlyDistribution: monthlyDistributionStats(monthly),
-    drawdownSeries: drawdownSeries(accountValueHistory),
+    drawdownSeries: drawdownSeries(av),
   };
 }
 

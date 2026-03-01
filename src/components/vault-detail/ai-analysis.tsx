@@ -154,7 +154,7 @@ export function AiAnalysis({
 
       {analysisError && analysisError.message !== "AI_UNAVAILABLE" && (
         <Card>
-          <CardContent className="py-6 text-center text-red-600 text-sm">
+          <CardContent className="py-6 text-center text-[#f85149] text-sm">
             {analysisError.message}
           </CardContent>
         </Card>
@@ -246,7 +246,7 @@ export function AiAnalysis({
         </CardHeader>
         {memoError && (
           <CardContent className="pt-0">
-            <p className="text-sm text-red-600">
+            <p className="text-sm text-[#f85149]">
               {memoError instanceof Error ? memoError.message : "Failed to generate memo"}
             </p>
           </CardContent>

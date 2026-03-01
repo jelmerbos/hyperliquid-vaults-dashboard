@@ -40,6 +40,7 @@ export function useDeepDiveVaults(
   minTvl: number,
   minAgeDays: number,
   period: DeepDivePeriod = "ITD",
+  minLeaderStake: number = 0,
 ) {
   const { data: allVaults, isLoading: listLoading } = useVaults();
 
@@ -109,6 +110,9 @@ export function useDeepDiveVaults(
             metrics.betaHype = beta(aligned.vault, aligned.benchmark);
           }
         }
+
+        // Filter by leader stake
+        if (minLeaderStake > 0 && vault.leaderFraction < minLeaderStake) return null;
 
         return { vault, listItem, metrics, percentiles: {}, accountValueHistory: avHistory };
       })
