@@ -68,3 +68,19 @@ export function annualizedVolatility(dailyRets: number[]): number {
     dailyRets.reduce((sum, r) => sum + (r - mean) ** 2, 0) / (dailyRets.length - 1);
   return Math.sqrt(variance) * Math.sqrt(DAYS_PER_YEAR);
 }
+
+/**
+ * Rolling annualized volatility over a sliding window.
+ * Returns array of [index, annualizedVol] for each complete window.
+ * Length = dailyRets.length - windowDays + 1.
+ */
+export function rollingVolatility(dailyRets: number[], windowDays: number): number[] {
+  if (dailyRets.length < windowDays || windowDays < 2) return [];
+
+  const result: number[] = [];
+  for (let i = 0; i <= dailyRets.length - windowDays; i++) {
+    const window = dailyRets.slice(i, i + windowDays);
+    result.push(annualizedVolatility(window));
+  }
+  return result;
+}

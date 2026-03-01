@@ -1,4 +1,9 @@
-import type { VaultListItem, VaultDetails } from "./types";
+import type {
+  VaultListItem,
+  VaultDetails,
+  ClearinghouseState,
+  SpotClearinghouseState,
+} from "./types";
 
 const STATS_BASE = "https://stats-data.hyperliquid.xyz";
 const API_BASE = "https://api.hyperliquid.xyz";
@@ -29,6 +34,40 @@ export async function fetchVaultDetails(address: string): Promise<VaultDetails> 
   });
   if (!res.ok) {
     throw new ApiError(res.status, `Failed to fetch vault details: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function fetchClearinghouseState(
+  address: string,
+): Promise<ClearinghouseState> {
+  const res = await fetch(`${API_BASE}/info`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ type: "clearinghouseState", user: address }),
+  });
+  if (!res.ok) {
+    throw new ApiError(
+      res.status,
+      `Failed to fetch clearinghouse state: ${res.statusText}`,
+    );
+  }
+  return res.json();
+}
+
+export async function fetchSpotClearinghouseState(
+  address: string,
+): Promise<SpotClearinghouseState> {
+  const res = await fetch(`${API_BASE}/info`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ type: "spotClearinghouseState", user: address }),
+  });
+  if (!res.ok) {
+    throw new ApiError(
+      res.status,
+      `Failed to fetch spot clearinghouse state: ${res.statusText}`,
+    );
   }
   return res.json();
 }

@@ -2,6 +2,7 @@ export type TimeSeries = [number, number][];
 
 const MS_PER_DAY = 86_400_000;
 const DAYS_PER_YEAR = 365;
+const MS_PER_YEAR = MS_PER_DAY * DAYS_PER_YEAR;
 
 /**
  * Cumulative PnL: last PnL value minus first.
@@ -63,4 +64,86 @@ export function dailyReturns(accountValueHistory: TimeSeries): number[] {
     }
   }
   return returns;
+}
+
+/**
+ * Monthly returns from account value history.
+ * Groups by year-month, takes last value per month, computes month-over-month returns.
+ */
+export function monthlyReturns(accountValueHistory: TimeSeries): number[] {
+  if (accountValueHistory.length < 2) return [];
+
+  const monthMap = new Map<string, number>();
+  for (const [ts, val] of accountValueHistory) {
+    const date = new Date(ts);
+    const key = `${date.getUTCFullYear()}-${date.getUTCMonth()}`;
+    monthMap.set(key, val);
+  }
+
+  const months = Array.from(monthMap.entries()).sort((a, b) => {
+    const [ay, am] = a[0].split("-").map(Number);
+    const [by, bm] = b[0].split("-").map(Number);
+    return ay !== by ? ay - by : am - bm;
+  });
+
+  const returns: number[] = [];
+  for (let i = 1; i < months.length; i++) {
+    const prev = months[i - 1][1];
+    if (prev === 0) {
+      returns.push(0);
+    } else {
+      returns.push((months[i][1] - prev) / prev);
+    }
+  }
+  return returns;
+}
+
+/**
+ * Return distribution statistics from daily returns.
+ */
+export interface ReturnDistributionStats {
+  winRate: number;
+  avgWin: number;
+  avgLoss: number;
+  bestDay: number;
+  worstDay: number;
+}
+
+export function returnDistributionStats(dailyRets: number[]): ReturnDistributionStats {
+  if (dailyRets.length === 0) {
+    return { winRate: 0, avgWin: 0, avgLoss: 0, bestDay: 0, worstDay: 0 };
+  }
+
+  const wins = dailyRets.filter((r) => r > 0);
+  const losses = dailyRets.filter((r) => r < 0);
+
+  return {
+    winRate: wins.length / dailyRets.length,
+    avgWin: wins.length > 0 ? wins.reduce((a, b) => a + b, 0) / wins.length : 0,
+    avgLoss: losses.length > 0 ? losses.reduce((a, b) => a + b, 0) / losses.length : 0,
+    bestDay: Math.max(...dailyRets),
+    worstDay: Math.min(...dailyRets),
+  };
+}
+
+/**
+ * Monthly distribution statistics.
+ */
+export interface MonthlyDistributionStats {
+  positiveMonthPct: number;
+  bestMonth: number;
+  worstMonth: number;
+}
+
+export function monthlyDistributionStats(monthlyRets: number[]): MonthlyDistributionStats {
+  if (monthlyRets.length === 0) {
+    return { positiveMonthPct: 0, bestMonth: 0, worstMonth: 0 };
+  }
+
+  const positive = monthlyRets.filter((r) => r > 0);
+  return {
+    positiveMonthPct: positive.length / monthlyRets.length,
+    bestMonth: Math.max(...monthlyRets),
+    worstMonth: Math.min(...monthlyRets),
+  };
 }

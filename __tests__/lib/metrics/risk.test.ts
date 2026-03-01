@@ -4,6 +4,7 @@ import {
   drawdownSeries,
   maxDrawdownDuration,
   annualizedVolatility,
+  rollingVolatility,
 } from "@/lib/metrics/risk";
 import type { TimeSeries } from "@/lib/metrics/returns";
 
@@ -120,5 +121,36 @@ describe("annualizedVolatility", () => {
     const returns = [0.01, -0.01, 0.01, -0.01];
     const result = annualizedVolatility(returns);
     expect(result).toBeCloseTo(0.2208, 2);
+  });
+});
+
+describe("rollingVolatility", () => {
+  /** @req INST-06 */
+  it("returns empty when data shorter than window", () => {
+    expect(rollingVolatility([0.01, -0.01], 5)).toEqual([]);
+  });
+
+  /** @req INST-06 */
+  it("returns empty when window < 2", () => {
+    expect(rollingVolatility([0.01, -0.01, 0.01], 1)).toEqual([]);
+  });
+
+  /** @req INST-06 */
+  it("returns correct number of results", () => {
+    const daily = [0.01, -0.01, 0.02, -0.02, 0.01, -0.01, 0.015];
+    const window = 3;
+    const result = rollingVolatility(daily, window);
+    expect(result).toHaveLength(daily.length - window + 1); // 5
+  });
+
+  /** @req INST-06 */
+  it("each value matches annualizedVolatility for that window", () => {
+    const daily = [0.01, -0.01, 0.02, -0.02, 0.01];
+    const window = 3;
+    const result = rollingVolatility(daily, window);
+    // First window: [0.01, -0.01, 0.02]
+    expect(result[0]).toBeCloseTo(annualizedVolatility([0.01, -0.01, 0.02]));
+    // Last window: [0.02, -0.02, 0.01]
+    expect(result[2]).toBeCloseTo(annualizedVolatility([0.02, -0.02, 0.01]));
   });
 });

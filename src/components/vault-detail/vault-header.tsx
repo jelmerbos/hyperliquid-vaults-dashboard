@@ -15,6 +15,11 @@ export function VaultHeader({ vault }: { vault: VaultDetails }) {
         <span>Leader: {shortenAddress(vault.leader)}</span>
         <span>Commission: {(vault.leaderCommission * 100).toFixed(1)}%</span>
         <span>Followers: {vault.followers.length}</span>
+        {vault.leaderFraction > 0 && (
+          <span>
+            Leader Stake: {(vault.leaderFraction * 100).toFixed(1)}%
+          </span>
+        )}
       </div>
       {vault.description && (
         <p className="text-sm text-muted-foreground max-w-2xl">

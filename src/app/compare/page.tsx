@@ -7,7 +7,8 @@ import { useVaults } from "@/lib/hooks/use-vaults";
 import { CompareSelector } from "@/components/compare/compare-selector";
 import { CompareGrid } from "@/components/compare/compare-grid";
 import { CompareCharts } from "@/components/compare/compare-charts";
-import { computeVaultMetrics } from "@/lib/metrics";
+import { CorrelationMatrix } from "@/components/compare/correlation-matrix";
+import { computeVaultMetrics, dailyReturns } from "@/lib/metrics";
 import type { TimeSeries } from "@/lib/metrics";
 import type { VaultDetails } from "@/lib/api/types";
 
@@ -73,6 +74,17 @@ function CompareContent() {
     });
   }, [compareRows]);
 
+  const correlationData = useMemo(() => {
+    return {
+      names: compareRows.map((r) => r.vault.name),
+      returns: compareRows.map((r) => {
+        const allTime = r.vault.portfolio.find(([p]) => p === "allTime");
+        if (!allTime) return [];
+        return dailyReturns(parseTimeSeries(allTime[1].accountValueHistory));
+      }),
+    };
+  }, [compareRows]);
+
   const activeVaults = (vaults ?? []).filter(
     (v) => !v.summary.isClosed && parseFloat(v.summary.tvl) > 100,
   );
@@ -102,6 +114,10 @@ function CompareContent() {
         <>
           <CompareGrid rows={compareRows} />
           <CompareCharts vaults={chartVaults} />
+          <CorrelationMatrix
+            vaultNames={correlationData.names}
+            allDailyReturns={correlationData.returns}
+          />
         </>
       )}
 

@@ -24,3 +24,11 @@ export function formatDaysAgo(timestampMs: number): string {
 export function shortenAddress(address: string): string {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
+
+export function formatRatio(value: number): string {
+  return value.toFixed(2);
+}
+
+export function formatMultiple(value: number): string {
+  return `${value.toFixed(1)}x`;
+}

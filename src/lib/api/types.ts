@@ -64,3 +64,65 @@ export interface VaultDetails {
   allowDeposits: boolean;
   alwaysCloseOnWithdraw: boolean;
 }
+
+// --- Clearinghouse State (POST /info, type: clearinghouseState) ---
+
+export interface PerpPosition {
+  coin: string;
+  szi: string;
+  entryPx: string;
+  leverage: {
+    type: string;
+    value: number;
+    rawUsd: string;
+  };
+  liquidationPx: string;
+  marginUsed: string;
+  positionValue: string;
+  unrealizedPnl: string;
+  returnOnEquity: string;
+  maxLeverage: number;
+  cumFunding: {
+    allTime: string;
+    sinceChange: string;
+    sinceOpen: string;
+  };
+}
+
+export interface MarginSummary {
+  accountValue: string;
+  totalMarginUsed: string;
+  totalNtlPos: string;
+  totalRawUsd: string;
+}
+
+export interface ClearinghouseState {
+  assetPositions: {
+    position: PerpPosition;
+    type: string;
+  }[];
+  marginSummary: MarginSummary;
+  withdrawable: string;
+  time: number;
+}
+
+// --- Spot Clearinghouse State (POST /info, type: spotClearinghouseState) ---
+
+export interface SpotBalance {
+  coin: string;
+  token: number;
+  hold: string;
+  total: string;
+  entryNtl: string;
+}
+
+export interface SpotClearinghouseState {
+  balances: SpotBalance[];
+}
+
+// --- Combined positions response ---
+
+export interface VaultPositions {
+  perp: ClearinghouseState;
+  spot: SpotClearinghouseState;
+}

@@ -5,10 +5,15 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useVaultDetails } from "@/lib/hooks/use-vault-details";
+import { useVaultPositions } from "@/lib/hooks/use-vault-positions";
 import { VaultHeader } from "@/components/vault-detail/vault-header";
 import { MetricsGrid } from "@/components/vault-detail/metrics-grid";
 import { PerformanceChart } from "@/components/vault-detail/performance-chart";
 import { DrawdownChart } from "@/components/vault-detail/drawdown-chart";
+import { PositionSummary } from "@/components/vault-detail/position-summary";
+import { PositionsTable } from "@/components/vault-detail/positions-table";
+import { BenchmarkSection } from "@/components/vault-detail/benchmark-section";
+import { AiAnalysis } from "@/components/vault-detail/ai-analysis";
 import { computeVaultMetrics } from "@/lib/metrics";
 import type { TimeSeries } from "@/lib/metrics";
 
@@ -23,22 +28,38 @@ export default function VaultDetailPage({
 }) {
   const { address } = use(params);
   const { data: vault, isLoading, error } = useVaultDetails(address);
+  const { data: positions } = useVaultPositions(address);
+
+  const allTimeSnapshot = useMemo(() => {
+    if (!vault) return null;
+    return vault.portfolio.find(([period]) => period === "allTime") ?? null;
+  }, [vault]);
 
   const metrics = useMemo(() => {
-    if (!vault) return null;
-    const allTime = vault.portfolio.find(([period]) => period === "allTime");
-    if (!allTime) return null;
-    const avHistory = parseTimeSeries(allTime[1].accountValueHistory);
-    const pnlHistory = parseTimeSeries(allTime[1].pnlHistory);
+    if (!allTimeSnapshot) return null;
+    const avHistory = parseTimeSeries(allTimeSnapshot[1].accountValueHistory);
+    const pnlHistory = parseTimeSeries(allTimeSnapshot[1].pnlHistory);
     return computeVaultMetrics(avHistory, pnlHistory);
-  }, [vault]);
+  }, [allTimeSnapshot]);
 
   const accountValueData = useMemo((): TimeSeries => {
-    if (!vault) return [];
-    const allTime = vault.portfolio.find(([period]) => period === "allTime");
-    if (!allTime) return [];
-    return parseTimeSeries(allTime[1].accountValueHistory);
-  }, [vault]);
+    if (!allTimeSnapshot) return [];
+    return parseTimeSeries(allTimeSnapshot[1].accountValueHistory);
+  }, [allTimeSnapshot]);
+
+  const volume = useMemo(() => {
+    if (!allTimeSnapshot) return undefined;
+    return parseFloat(allTimeSnapshot[1].vlm);
+  }, [allTimeSnapshot]);
+
+  const tvl = useMemo(() => {
+    if (!vault) return undefined;
+    // Derive TVL from latest account value in the allTime snapshot
+    if (!allTimeSnapshot) return undefined;
+    const avHistory = allTimeSnapshot[1].accountValueHistory;
+    if (avHistory.length === 0) return undefined;
+    return parseFloat(avHistory[avHistory.length - 1][1]);
+  }, [vault, allTimeSnapshot]);
 
   if (isLoading) {
     return (
@@ -71,10 +92,35 @@ export default function VaultDetailPage({
 
       {metrics && (
         <>
-          <MetricsGrid metrics={metrics} apr={vault.apr} />
+          <MetricsGrid metrics={metrics} apr={vault.apr} volume={volume} tvl={tvl} />
           <PerformanceChart data={accountValueData} />
           <DrawdownChart data={metrics.drawdownSeries} />
         </>
+      )}
+
+      {accountValueData.length > 0 && (
+        <BenchmarkSection accountValueHistory={accountValueData} />
+      )}
+
+      {positions && (
+        <>
+          <PositionSummary
+            positions={positions}
+            leaderFraction={vault.leaderFraction}
+            maxDistributable={vault.maxDistributable}
+            maxWithdrawable={vault.maxWithdrawable}
+          />
+          <PositionsTable positions={positions} />
+        </>
+      )}
+
+      {metrics && (
+        <AiAnalysis
+          vault={vault}
+          metrics={metrics}
+          positions={positions}
+          tvl={tvl}
+        />
       )}
     </main>
   );

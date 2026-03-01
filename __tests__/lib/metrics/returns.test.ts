@@ -4,6 +4,9 @@ import {
   cumulativeReturn,
   annualizedReturn,
   dailyReturns,
+  monthlyReturns,
+  returnDistributionStats,
+  monthlyDistributionStats,
 } from "@/lib/metrics/returns";
 import type { TimeSeries } from "@/lib/metrics/returns";
 
@@ -116,5 +119,89 @@ describe("dailyReturns", () => {
     expect(result).toHaveLength(1);
     // Last value for day 0 is 105, day 1 is 110
     expect(result[0]).toBeCloseTo((110 - 105) / 105);
+  });
+});
+
+describe("monthlyReturns", () => {
+  /** @req INST-04 */
+  it("returns empty for empty/single", () => {
+    expect(monthlyReturns([])).toEqual([]);
+    expect(monthlyReturns([[1000, 100]])).toEqual([]);
+  });
+
+  /** @req INST-04 */
+  it("computes month-over-month returns across 3 months", () => {
+    // Jan 1 2024: 100, Feb 1 2024: 110, Mar 1 2024: 99
+    const history: TimeSeries = [
+      [Date.UTC(2024, 0, 1), 100],
+      [Date.UTC(2024, 1, 1), 110],
+      [Date.UTC(2024, 2, 1), 99],
+    ];
+    const result = monthlyReturns(history);
+    expect(result).toHaveLength(2);
+    expect(result[0]).toBeCloseTo(0.1); // 100 -> 110
+    expect(result[1]).toBeCloseTo(-0.1, 2); // 110 -> 99
+  });
+
+  /** @req INST-04 */
+  it("groups multiple points in same month, takes last", () => {
+    const history: TimeSeries = [
+      [Date.UTC(2024, 0, 1), 100],
+      [Date.UTC(2024, 0, 15), 105], // same month
+      [Date.UTC(2024, 1, 1), 110],
+    ];
+    const result = monthlyReturns(history);
+    expect(result).toHaveLength(1);
+    expect(result[0]).toBeCloseTo((110 - 105) / 105);
+  });
+});
+
+describe("returnDistributionStats", () => {
+  /** @req INST-03 */
+  it("returns zeros for empty input", () => {
+    const stats = returnDistributionStats([]);
+    expect(stats.winRate).toBe(0);
+    expect(stats.avgWin).toBe(0);
+    expect(stats.avgLoss).toBe(0);
+    expect(stats.bestDay).toBe(0);
+    expect(stats.worstDay).toBe(0);
+  });
+
+  /** @req INST-03 */
+  it("computes correct stats for mixed returns", () => {
+    // 3 wins (+10%, +5%, +20%), 2 losses (-10%, -5%)
+    const daily = [0.10, -0.10, 0.05, -0.05, 0.20];
+    const stats = returnDistributionStats(daily);
+    expect(stats.winRate).toBeCloseTo(3 / 5);
+    expect(stats.avgWin).toBeCloseTo((0.10 + 0.05 + 0.20) / 3);
+    expect(stats.avgLoss).toBeCloseTo((-0.10 + -0.05) / 2);
+    expect(stats.bestDay).toBeCloseTo(0.20);
+    expect(stats.worstDay).toBeCloseTo(-0.10);
+  });
+
+  /** @req INST-03 */
+  it("handles all-positive returns", () => {
+    const stats = returnDistributionStats([0.01, 0.02, 0.03]);
+    expect(stats.winRate).toBe(1);
+    expect(stats.avgLoss).toBe(0);
+  });
+});
+
+describe("monthlyDistributionStats", () => {
+  /** @req INST-04 */
+  it("returns zeros for empty input", () => {
+    const stats = monthlyDistributionStats([]);
+    expect(stats.positiveMonthPct).toBe(0);
+    expect(stats.bestMonth).toBe(0);
+    expect(stats.worstMonth).toBe(0);
+  });
+
+  /** @req INST-04 */
+  it("computes correct stats", () => {
+    const monthly = [0.05, -0.03, 0.10, -0.02];
+    const stats = monthlyDistributionStats(monthly);
+    expect(stats.positiveMonthPct).toBeCloseTo(2 / 4);
+    expect(stats.bestMonth).toBeCloseTo(0.10);
+    expect(stats.worstMonth).toBeCloseTo(-0.03);
   });
 });
