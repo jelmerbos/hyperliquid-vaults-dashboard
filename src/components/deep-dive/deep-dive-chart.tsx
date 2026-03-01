@@ -14,7 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { DeepDiveRow } from "@/lib/hooks/use-deep-dive-vaults";
 
 const COLORS = [
-  "#7cfcce", "#f0883e", "#58a6ff", "#bc8cff", "#3fb68b",
+  "#97fce4", "#f0883e", "#58a6ff", "#bc8cff", "#3fb68b",
   "#f778ba", "#79c0ff", "#d2a8ff", "#56d364", "#ffa657",
 ];
 

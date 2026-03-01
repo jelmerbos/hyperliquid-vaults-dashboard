@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useRecentVaults } from "@/lib/hooks/use-recent-vaults";
 import { Button } from "@/components/ui/button";
-import { HLLogo } from "@/components/hl-logo";
+import { HLLogo, HLWordmark } from "@/components/hl-logo";
 
 const navItems = [
   { href: "/", label: "Vaults", icon: Vault },
@@ -39,9 +39,8 @@ export function TopBar() {
           >
             {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </Button>
-          <Link href="/" className="flex items-center gap-2">
-            <HLLogo className="h-6 w-8 text-accent-teal" />
-            <span className="font-semibold">Hyperliquid</span>
+          <Link href="/" className="block">
+            <HLWordmark className="h-6" />
           </Link>
         </div>
 
@@ -55,10 +54,10 @@ export function TopBar() {
             href="https://app.hyperliquid.xyz"
             target="_blank"
             rel="noopener noreferrer"
-            className="hidden sm:flex items-center gap-2 rounded-lg bg-accent-teal px-3 py-1.5 text-sm font-medium text-black transition-opacity hover:opacity-90"
+            className="hidden sm:flex items-center gap-2 rounded-lg bg-accent-teal px-3 py-1.5 text-sm font-medium transition-opacity hover:opacity-90"
           >
-            Trade on
-            <HLLogo className="h-4 w-5 text-black" />
+            <span className="text-[#042720]">Trade on</span>
+            <HLLogo className="h-4 w-5 text-[#042720]" />
           </a>
         </div>
       </header>
@@ -72,11 +71,8 @@ export function TopBar() {
           />
           <aside className="absolute top-0 left-0 h-full w-[260px] border-r border-border bg-background p-4">
             <div className="flex items-center justify-between mb-6">
-              <Link href="/" className="flex items-center gap-2" onClick={() => setMobileOpen(false)}>
-                <div className="h-6 w-6 rounded-md bg-accent-teal flex items-center justify-center">
-                  <span className="text-xs font-bold text-black">HL</span>
-                </div>
-                <span className="font-semibold">Hyperliquid</span>
+              <Link href="/" className="block" onClick={() => setMobileOpen(false)}>
+                <HLWordmark className="h-6" />
               </Link>
               <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => setMobileOpen(false)}>
                 <X className="h-5 w-5" />

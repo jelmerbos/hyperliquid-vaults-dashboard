@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense } from "react";
+import { useState, useMemo, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useDeepDiveVaults } from "@/lib/hooks/use-deep-dive-vaults";
 import { DeepDiveTable } from "@/components/deep-dive/deep-dive-table";
@@ -17,6 +17,7 @@ const VALID_PERIODS = new Set<DeepDivePeriod>(["7D", "30D", "90D", "365D", "YTD"
 function DeepDiveContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const [searchQuery, setSearchQuery] = useState("");
 
   const minTvl = Number(searchParams.get("minTvl")) || DEFAULT_MIN_TVL;
   const minAgeDays = Number(searchParams.get("minAge")) || DEFAULT_MIN_AGE_DAYS;
@@ -25,6 +26,16 @@ function DeepDiveContent() {
   const period: DeepDivePeriod = periodParam && VALID_PERIODS.has(periodParam) ? periodParam : DEFAULT_PERIOD;
 
   const { rows, qualifying, isLoading } = useDeepDiveVaults(minTvl, minAgeDays, period, minLeaderStake / 100);
+
+  const filteredRows = useMemo(() => {
+    if (!searchQuery.trim()) return rows;
+    const q = searchQuery.toLowerCase();
+    return rows.filter((row) => {
+      const name = (row.vault.name ?? "").toLowerCase();
+      const address = row.vault.vaultAddress?.toLowerCase() ?? "";
+      return name.includes(q) || address.includes(q);
+    });
+  }, [rows, searchQuery]);
 
   const updateParam = (key: string, value: string | number) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -41,10 +52,12 @@ function DeepDiveContent() {
         minAgeDays={minAgeDays}
         minLeaderStake={minLeaderStake}
         period={period}
+        searchQuery={searchQuery}
         onMinTvlChange={(v) => updateParam("minTvl", v)}
         onMinAgeDaysChange={(v) => updateParam("minAge", v)}
         onMinLeaderStakeChange={(v) => updateParam("minStake", v)}
         onPeriodChange={(v) => updateParam("period", v)}
+        onSearchQueryChange={setSearchQuery}
       />
 
       {!isLoading && qualifying.length > 0 && (
@@ -56,9 +69,9 @@ function DeepDiveContent() {
         </p>
       )}
 
-      <DeepDiveTable rows={rows} isLoading={isLoading} />
+      <DeepDiveTable rows={filteredRows} isLoading={isLoading} />
 
-      {!isLoading && rows.length > 0 && <DeepDiveChart rows={rows} />}
+      {!isLoading && filteredRows.length > 0 && <DeepDiveChart rows={filteredRows} />}
     </div>
   );
 }

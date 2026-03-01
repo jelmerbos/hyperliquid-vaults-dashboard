@@ -1,3 +1,38 @@
+"use client";
+
+import Image from "next/image";
+
+/**
+ * Full Hyperliquid wordmark (bowtie + text).
+ * Shows teal+white version in dark mode, dark green version in light mode.
+ */
+export function HLWordmark({ className }: { className?: string }) {
+  return (
+    <span className={className}>
+      <Image
+        src="/hl-logo-dark.png"
+        alt="Hyperliquid"
+        width={160}
+        height={28}
+        className="hidden dark:block h-full w-auto"
+        priority
+      />
+      <Image
+        src="/hl-logo-light.jpg"
+        alt="Hyperliquid"
+        width={160}
+        height={28}
+        className="block dark:hidden h-full w-auto"
+        priority
+      />
+    </span>
+  );
+}
+
+/**
+ * Bowtie icon only (SVG, uses currentColor for theming).
+ * Use for small icon contexts like buttons.
+ */
 export function HLLogo({ className }: { className?: string }) {
   return (
     <svg
@@ -6,12 +41,6 @@ export function HLLogo({ className }: { className?: string }) {
       xmlns="http://www.w3.org/2000/svg"
       className={className}
     >
-      {/* Hyperliquid bowtie logo */}
-      <path
-        d="M20 2C16 2 13 5.5 10 8.5C7 11.5 4 14 0 14C4 14 7 17.5 10 20.5C13 17.5 16 14 20 14C16 14 13 17.5 10 20.5C7 17.5 4 14 0 14"
-        fill="currentColor"
-        opacity="0"
-      />
       {/* Left lobe */}
       <ellipse cx="11" cy="12" rx="9" ry="8" fill="currentColor" opacity="0.9" />
       {/* Right lobe */}

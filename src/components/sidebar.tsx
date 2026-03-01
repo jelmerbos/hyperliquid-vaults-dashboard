@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { BarChart3, GitCompare, Search, Vault } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRecentVaults } from "@/lib/hooks/use-recent-vaults";
-import { HLLogo } from "@/components/hl-logo";
+import { HLWordmark } from "@/components/hl-logo";
 
 const navSections = [
   {
@@ -37,9 +37,8 @@ export function Sidebar() {
       <aside className="hidden md:flex fixed top-0 left-0 z-40 h-screen w-[220px] flex-col border-r border-sidebar-border bg-sidebar">
         {/* Brand */}
         <div className="flex h-14 items-center px-5">
-          <Link href="/" className="flex items-center gap-2">
-            <HLLogo className="h-6 w-8 text-accent-teal" />
-            <span className="font-semibold text-sidebar-foreground">Hyperliquid</span>
+          <Link href="/" className="block">
+            <HLWordmark className="h-7" />
           </Link>
         </div>
 

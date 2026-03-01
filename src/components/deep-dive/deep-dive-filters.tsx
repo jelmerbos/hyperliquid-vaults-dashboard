@@ -1,5 +1,6 @@
 "use client";
 
+import { Search } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/utils/format";
@@ -10,10 +11,12 @@ interface DeepDiveFiltersProps {
   minAgeDays: number;
   minLeaderStake: number;
   period: DeepDivePeriod;
+  searchQuery: string;
   onMinTvlChange: (value: number) => void;
   onMinAgeDaysChange: (value: number) => void;
   onMinLeaderStakeChange: (value: number) => void;
   onPeriodChange: (value: DeepDivePeriod) => void;
+  onSearchQueryChange: (value: string) => void;
 }
 
 const TVL_PRESETS = [0, 50_000, 100_000, 250_000, 500_000, 1_000_000, 5_000_000, 10_000_000];
@@ -26,15 +29,32 @@ export function DeepDiveFilters({
   minAgeDays,
   minLeaderStake,
   period,
+  searchQuery,
   onMinTvlChange,
   onMinAgeDaysChange,
   onMinLeaderStakeChange,
   onPeriodChange,
+  onSearchQueryChange,
 }: DeepDiveFiltersProps) {
   return (
     <Card>
       <CardContent className="pt-6">
         <div className="flex flex-col sm:flex-row gap-6 flex-wrap">
+          <div className="space-y-2 sm:min-w-[240px]">
+            <label className="text-sm font-medium">Search Vault</label>
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => onSearchQueryChange(e.target.value)}
+                placeholder="Filter by name or address..."
+                className="w-full h-8 pl-9 pr-3 text-sm border rounded-md bg-background"
+                aria-label="Search vaults by name"
+              />
+            </div>
+          </div>
+
           <div className="space-y-2">
             <label className="text-sm font-medium">Period</label>
             <div className="flex flex-wrap gap-2">

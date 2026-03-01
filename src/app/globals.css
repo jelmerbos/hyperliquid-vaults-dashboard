@@ -48,44 +48,44 @@
   --radius-4xl: calc(var(--radius) + 16px);
 }
 
-/* Light theme */
+/* Light theme - Hyperliquid brand: dark green #042720 */
 :root {
   --radius: 0.625rem;
   --background: #f8fafc;
-  --foreground: #0d1117;
+  --foreground: #042720;
   --card: #ffffff;
-  --card-foreground: #0d1117;
+  --card-foreground: #042720;
   --popover: #ffffff;
-  --popover-foreground: #0d1117;
-  --primary: #0d1117;
+  --popover-foreground: #042720;
+  --primary: #042720;
   --primary-foreground: #f8fafc;
   --secondary: #f1f5f9;
-  --secondary-foreground: #0d1117;
+  --secondary-foreground: #042720;
   --muted: #f1f5f9;
-  --muted-foreground: #8b949e;
+  --muted-foreground: #5a7a70;
   --accent: #f1f5f9;
-  --accent-foreground: #0d1117;
-  --accent-teal: #2dd4a0;
+  --accent-foreground: #042720;
+  --accent-teal: #97fce4;
   --destructive: #ef4444;
   --border: #e2e8f0;
   --input: #e2e8f0;
-  --ring: #2dd4a0;
-  --chart-1: #2dd4a0;
-  --chart-2: #3fb68b;
+  --ring: #042720;
+  --chart-1: #042720;
+  --chart-2: #0a4f3d;
   --chart-3: #f0883e;
   --chart-4: #58a6ff;
   --chart-5: #bc8cff;
   --sidebar: #ffffff;
-  --sidebar-foreground: #0d1117;
-  --sidebar-primary: #2dd4a0;
-  --sidebar-primary-foreground: #0d1117;
+  --sidebar-foreground: #042720;
+  --sidebar-primary: #042720;
+  --sidebar-primary-foreground: #ffffff;
   --sidebar-accent: #f1f5f9;
-  --sidebar-accent-foreground: #0d1117;
+  --sidebar-accent-foreground: #042720;
   --sidebar-border: #e2e8f0;
-  --sidebar-ring: #7cfcce;
+  --sidebar-ring: #042720;
 }
 
-/* Dark theme - ASXN Hyperscreener style */
+/* Dark theme - Hyperliquid brand: mint #97fce4 */
 .dark {
   --background: #0d1117;
   --foreground: #e6edf3;
@@ -101,24 +101,24 @@
   --muted-foreground: #8b949e;
   --accent: #21262d;
   --accent-foreground: #e6edf3;
-  --accent-teal: #7cfcce;
+  --accent-teal: #97fce4;
   --destructive: #f85149;
   --border: #21262d;
   --input: #21262d;
-  --ring: #7cfcce;
-  --chart-1: #7cfcce;
+  --ring: #97fce4;
+  --chart-1: #97fce4;
   --chart-2: #3fb68b;
   --chart-3: #f0883e;
   --chart-4: #58a6ff;
   --chart-5: #bc8cff;
   --sidebar: #0d1117;
   --sidebar-foreground: #e6edf3;
-  --sidebar-primary: #7cfcce;
+  --sidebar-primary: #97fce4;
   --sidebar-primary-foreground: #0d1117;
   --sidebar-accent: #161b22;
   --sidebar-accent-foreground: #e6edf3;
   --sidebar-border: #21262d;
-  --sidebar-ring: #7cfcce;
+  --sidebar-ring: #97fce4;
 }
 
 @layer base {

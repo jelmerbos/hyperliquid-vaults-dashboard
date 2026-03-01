@@ -13,7 +13,7 @@ describe("DeepDiveFilters", () => {
         period="ITD"
         onMinTvlChange={vi.fn()}
         onMinAgeDaysChange={vi.fn()}
-        onPeriodChange={vi.fn()}
+        onPeriodChange={vi.fn()} minLeaderStake={0} onMinLeaderStakeChange={vi.fn()} searchQuery="" onSearchQueryChange={vi.fn()}
       />,
     );
 
@@ -37,7 +37,7 @@ describe("DeepDiveFilters", () => {
         period="ITD"
         onMinTvlChange={vi.fn()}
         onMinAgeDaysChange={vi.fn()}
-        onPeriodChange={onChange}
+        onPeriodChange={onChange} minLeaderStake={0} onMinLeaderStakeChange={vi.fn()} searchQuery="" onSearchQueryChange={vi.fn()}
       />,
     );
 
@@ -54,7 +54,7 @@ describe("DeepDiveFilters", () => {
         period="ITD"
         onMinTvlChange={vi.fn()}
         onMinAgeDaysChange={vi.fn()}
-        onPeriodChange={vi.fn()}
+        onPeriodChange={vi.fn()} minLeaderStake={0} onMinLeaderStakeChange={vi.fn()} searchQuery="" onSearchQueryChange={vi.fn()}
       />,
     );
 
@@ -74,7 +74,7 @@ describe("DeepDiveFilters", () => {
         period="ITD"
         onMinTvlChange={vi.fn()}
         onMinAgeDaysChange={vi.fn()}
-        onPeriodChange={vi.fn()}
+        onPeriodChange={vi.fn()} minLeaderStake={0} onMinLeaderStakeChange={vi.fn()} searchQuery="" onSearchQueryChange={vi.fn()}
       />,
     );
 
@@ -96,7 +96,7 @@ describe("DeepDiveFilters", () => {
         period="ITD"
         onMinTvlChange={onChange}
         onMinAgeDaysChange={vi.fn()}
-        onPeriodChange={vi.fn()}
+        onPeriodChange={vi.fn()} minLeaderStake={0} onMinLeaderStakeChange={vi.fn()} searchQuery="" onSearchQueryChange={vi.fn()}
       />,
     );
 
@@ -116,7 +116,7 @@ describe("DeepDiveFilters", () => {
         period="ITD"
         onMinTvlChange={vi.fn()}
         onMinAgeDaysChange={onChange}
-        onPeriodChange={vi.fn()}
+        onPeriodChange={vi.fn()} minLeaderStake={0} onMinLeaderStakeChange={vi.fn()} searchQuery="" onSearchQueryChange={vi.fn()}
       />,
     );
 
@@ -133,7 +133,7 @@ describe("DeepDiveFilters", () => {
         period="ITD"
         onMinTvlChange={vi.fn()}
         onMinAgeDaysChange={vi.fn()}
-        onPeriodChange={vi.fn()}
+        onPeriodChange={vi.fn()} minLeaderStake={0} onMinLeaderStakeChange={vi.fn()} searchQuery="" onSearchQueryChange={vi.fn()}
       />,
     );
 
@@ -150,7 +150,7 @@ describe("DeepDiveFilters", () => {
         period="ITD"
         onMinTvlChange={vi.fn()}
         onMinAgeDaysChange={vi.fn()}
-        onPeriodChange={vi.fn()}
+        onPeriodChange={vi.fn()} minLeaderStake={0} onMinLeaderStakeChange={vi.fn()} searchQuery="" onSearchQueryChange={vi.fn()}
       />,
     );
 

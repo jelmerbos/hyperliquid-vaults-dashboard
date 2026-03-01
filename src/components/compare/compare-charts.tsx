@@ -13,7 +13,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { TimeSeries } from "@/lib/metrics";
 
-const COLORS = ["#7cfcce", "#f0883e", "#58a6ff", "#bc8cff"];
+const COLORS = ["#97fce4", "#f0883e", "#58a6ff", "#bc8cff"];
 
 interface ChartVault {
   name: string;
