@@ -14,5 +14,6 @@ export function useBenchmark(
     queryFn: () => benchmarkProvider.getSeries(id, startMs!, endMs!),
     enabled: startMs != null && endMs != null,
     staleTime: 5 * 60 * 1000, // benchmark data doesn't change often
+    retry: false,
   });
 }

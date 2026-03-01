@@ -53,8 +53,10 @@ npx vitest --run         # Run tests once (CI mode)
 
 - `https://stats-data.hyperliquid.xyz/Mainnet/vaults` - GET vault list
 - `https://api.hyperliquid.xyz/info` - POST vault details (body: `{type: "vaultDetails", vaultAddress}`)
+- `https://pro-api.coingecko.com/api/v3/coins/{id}/market_chart/range` - GET benchmark prices (BTC/HYPE). Requires `COINGECKO_API_KEY`.
+- Claude API via `@anthropic-ai/sdk` - strategy classification, DD memos, chat. Requires `ANTHROPIC_API_KEY`.
 
-API routes in `src/app/api/` proxy these to avoid CORS issues.
+API routes in `src/app/api/` proxy these to avoid CORS issues and protect API keys.
 
 ## Key Patterns
 

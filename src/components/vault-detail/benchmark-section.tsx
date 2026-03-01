@@ -2,12 +2,10 @@
 
 import { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { formatRatio, formatPercent } from "@/lib/utils/format";
 import { useBenchmark } from "@/lib/hooks/use-benchmark";
 import { beta, alpha, informationRatio } from "@/lib/metrics/benchmark";
 import { annualizedReturn, dailyReturns } from "@/lib/metrics/returns";
-import { benchmarkProvider } from "@/lib/benchmarks";
 import type { TimeSeries } from "@/lib/metrics";
 
 function MetricCard({
@@ -46,8 +44,8 @@ export function BenchmarkSection({
       ? accountValueHistory[accountValueHistory.length - 1][0]
       : undefined;
 
-  const { data: btcSeries, isLoading: btcLoading } = useBenchmark("BTC", startMs, endMs);
-  const { data: hypeSeries, isLoading: hypeLoading } = useBenchmark("HYPE", startMs, endMs);
+  const { data: btcSeries, isLoading: btcLoading, error: btcError } = useBenchmark("BTC", startMs, endMs);
+  const { data: hypeSeries, isLoading: hypeLoading, error: hypeError } = useBenchmark("HYPE", startMs, endMs);
 
   const vaultDaily = useMemo(
     () => dailyReturns(accountValueHistory),
@@ -82,6 +80,11 @@ export function BenchmarkSection({
     };
   }, [hypeSeries, vaultDaily, vaultAnnReturn]);
 
+  // Don't render the section at all if benchmark data is unavailable (no API key)
+  if (btcError && hypeError) {
+    return null;
+  }
+
   if (btcLoading || hypeLoading) {
     return (
       <div className="text-sm text-muted-foreground">
@@ -94,11 +97,6 @@ export function BenchmarkSection({
     <div className="space-y-4">
       <div className="flex items-center gap-2">
         <h2 className="text-lg font-semibold">Benchmark Analysis</h2>
-        {benchmarkProvider.isPlaceholder && (
-          <Badge variant="outline" className="text-xs">
-            Placeholder Data
-          </Badge>
-        )}
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
