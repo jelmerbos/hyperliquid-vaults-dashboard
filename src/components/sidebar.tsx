@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BarChart3, GitCompare, Search, Vault } from "lucide-react";
+import { BarChart3, GitCompare, PieChart, Search, Vault } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRecentVaults } from "@/lib/hooks/use-recent-vaults";
 import { HLWordmark } from "@/components/hl-logo";
@@ -14,6 +14,7 @@ const navSections = [
       { href: "/", label: "Vaults", icon: Vault },
       { href: "/deep-dive", label: "Deep Dive", icon: BarChart3 },
       { href: "/compare", label: "Compare", icon: GitCompare },
+      { href: "/portfolio", label: "Portfolio", icon: PieChart },
     ],
   },
 ];

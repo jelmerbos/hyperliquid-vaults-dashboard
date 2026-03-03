@@ -3,6 +3,15 @@ import type { TimeSeries } from "./returns";
 const MS_PER_DAY = 86_400_000;
 const DAYS_PER_YEAR = 365;
 
+export interface DrawdownEpisode {
+  startTs: number;
+  troughTs: number;
+  recoveryTs: number | null; // null = ongoing
+  depth: number; // negative fraction
+  durationDays: number; // start to recovery (or end)
+  recoveryDays: number | null; // trough to recovery (null = ongoing)
+}
+
 /**
  * Max drawdown as a negative fraction (e.g. -0.20 = 20% drawdown).
  * Returns 0 if no drawdown occurred.
@@ -56,6 +65,74 @@ export function maxDrawdownDuration(accountValueHistory: TimeSeries): number {
   if (finalDuration > maxDurationMs) maxDurationMs = finalDuration;
 
   return maxDurationMs / MS_PER_DAY;
+}
+
+/**
+ * Identify distinct drawdown episodes from an account value history.
+ * An episode starts when value drops below the previous peak,
+ * and ends when value recovers back to (or above) the peak.
+ * Only episodes with depth <= -1% are included to filter noise.
+ */
+export function drawdownEpisodes(accountValueHistory: TimeSeries): DrawdownEpisode[] {
+  if (accountValueHistory.length < 2) return [];
+
+  const episodes: DrawdownEpisode[] = [];
+  let peak = accountValueHistory[0][1];
+  let peakTs = accountValueHistory[0][0];
+  let inDrawdown = false;
+  let currentStart = 0;
+  let currentTroughTs = 0;
+  let currentTroughVal = Infinity;
+  let currentDepth = 0;
+
+  for (const [ts, val] of accountValueHistory) {
+    if (val >= peak) {
+      // Recovered or new peak
+      if (inDrawdown && currentDepth <= -0.01) {
+        episodes.push({
+          startTs: currentStart,
+          troughTs: currentTroughTs,
+          recoveryTs: ts,
+          depth: currentDepth,
+          durationDays: (ts - currentStart) / MS_PER_DAY,
+          recoveryDays: (ts - currentTroughTs) / MS_PER_DAY,
+        });
+      }
+      peak = val;
+      peakTs = ts;
+      inDrawdown = false;
+      currentTroughVal = Infinity;
+    } else {
+      const dd = (val - peak) / peak;
+      if (!inDrawdown) {
+        inDrawdown = true;
+        currentStart = peakTs;
+        currentTroughTs = ts;
+        currentTroughVal = val;
+        currentDepth = dd;
+      }
+      if (val < currentTroughVal) {
+        currentTroughVal = val;
+        currentTroughTs = ts;
+        currentDepth = dd;
+      }
+    }
+  }
+
+  // Handle ongoing drawdown
+  if (inDrawdown && currentDepth <= -0.01) {
+    const lastTs = accountValueHistory[accountValueHistory.length - 1][0];
+    episodes.push({
+      startTs: currentStart,
+      troughTs: currentTroughTs,
+      recoveryTs: null,
+      depth: currentDepth,
+      durationDays: (lastTs - currentStart) / MS_PER_DAY,
+      recoveryDays: null,
+    });
+  }
+
+  return episodes;
 }
 
 /**

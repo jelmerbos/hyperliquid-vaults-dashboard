@@ -56,10 +56,19 @@ export function DeepDiveTable({ rows, isLoading }: DeepDiveTableProps) {
   }, [rowSelection, table]);
 
   const canCompare = selectedAddresses.length >= 2 && selectedAddresses.length <= 4;
+  const canPortfolio = selectedAddresses.length >= 2 && selectedAddresses.length <= 10;
 
   const handleCompare = () => {
     if (!canCompare) return;
     router.push(`/compare?vaults=${selectedAddresses.join(",")}`);
+  };
+
+  const handlePortfolio = () => {
+    if (!canPortfolio) return;
+    const equalWeight = Math.round(100 / selectedAddresses.length);
+    const weights = selectedAddresses.map(() => equalWeight);
+    weights[0] += 100 - weights.reduce((s, w) => s + w, 0);
+    router.push(`/portfolio?vaults=${selectedAddresses.join(",")}&weights=${weights.join(",")}`);
   };
 
   if (isLoading) {
@@ -105,8 +114,16 @@ export function DeepDiveTable({ rows, isLoading }: DeepDiveTableProps) {
           >
             Compare Selected
           </Button>
+          <Button
+            onClick={handlePortfolio}
+            disabled={!canPortfolio}
+            size="sm"
+            variant="outline"
+          >
+            Add to Portfolio
+          </Button>
           {selectedAddresses.length > 4 && (
-            <span className="text-sm text-[#f85149]">Max 4 vaults for comparison</span>
+            <span className="text-sm text-[#f85149]">Max 4 for compare, 10 for portfolio</span>
           )}
           {selectedAddresses.length === 1 && (
             <span className="text-sm text-muted-foreground">Select at least 2</span>

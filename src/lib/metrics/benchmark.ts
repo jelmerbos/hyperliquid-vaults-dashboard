@@ -97,6 +97,27 @@ export function informationRatio(
 }
 
 /**
+ * Rolling beta over a sliding window.
+ * Returns array of length (n - windowDays + 1) where n = min(vaultReturns, benchmarkReturns).
+ */
+export function rollingBeta(
+  vaultReturns: number[],
+  benchmarkReturns: number[],
+  windowDays: number,
+): number[] {
+  const n = Math.min(vaultReturns.length, benchmarkReturns.length);
+  if (n < windowDays || windowDays < 2) return [];
+
+  const result: number[] = [];
+  for (let i = 0; i <= n - windowDays; i++) {
+    const vWindow = vaultReturns.slice(i, i + windowDays);
+    const bWindow = benchmarkReturns.slice(i, i + windowDays);
+    result.push(beta(vWindow, bWindow));
+  }
+  return result;
+}
+
+/**
  * Correlation matrix for multiple vault return series.
  * Returns a symmetric NxN matrix where matrix[i][j] = correlation(vaults[i], vaults[j]).
  * Diagonal is always 1.0.
